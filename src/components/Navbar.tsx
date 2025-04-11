@@ -6,57 +6,83 @@ import AuthModal from "./AuthModal";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User } from "@supabase/supabase-js";
+import { Profile } from "@/types/profile";
+import { toast } from "@/hooks/use-toast";
 
 const Navbar = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   
   useEffect(() => {
-    // Check if user is logged in
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log("Auth event:", event);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          // Fetch profile in a separate function to avoid blocking the auth state change
+          setTimeout(() => {
+            fetchUserProfile(session.user.id);
+          }, 0);
+        } else {
+          setProfile(null);
+        }
+      }
+    );
+    
+    // THEN check for existing session
     const getSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user || null);
       
       if (session?.user) {
-        const { data } = await supabase
-          .from('superconnector_profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-          
-        setProfile(data);
+        fetchUserProfile(session.user.id);
       }
     };
     
     getSession();
-    
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user || null);
-      
-      if (session?.user) {
-        const { data } = await supabase
-          .from('superconnector_profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-          
-        setProfile(data);
-      } else {
-        setProfile(null);
-      }
-    });
     
     return () => {
       subscription.unsubscribe();
     };
   }, []);
   
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('superconnector_profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        console.error("Error fetching profile:", error);
+        return;
+      }
+      
+      setProfile(data as Profile);
+    } catch (err) {
+      console.error("Failed to fetch profile:", err);
+    }
+  };
+  
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setProfile(null);
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setProfile(null);
+      toast({
+        title: "Signed out successfully"
+      });
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast({
+        title: "Error signing out",
+        variant: "destructive"
+      });
+    }
   };
   
   const getInitials = (name: string) => {

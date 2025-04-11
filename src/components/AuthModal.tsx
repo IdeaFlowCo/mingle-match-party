@@ -47,25 +47,33 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
     
     try {
       // Create a magic link to a phone-based email
-      const phoneEmail = `${formData.phone.replace(/\D/g, '')}@superconnector.app`;
+      const sanitizedPhone = formData.phone.replace(/\D/g, '');
+      if (!sanitizedPhone) {
+        throw new Error("Please enter a valid phone number");
+      }
+      
+      const phoneEmail = `${sanitizedPhone}@superconnector.app`;
+      
+      // If user is signing up, we'll pass additional metadata
+      const options = activeTab === "signup" 
+        ? {
+            data: {
+              name: formData.name,
+              phone: formData.phone
+            }
+          }
+        : undefined;
       
       const { error } = await supabase.auth.signInWithOtp({
         email: phoneEmail,
-        options: {
-          // Add user metadata if they're signing up for the first time
-          data: {
-            name: formData.name,
-            phone: formData.phone
-          }
-        }
+        options
       });
       
       if (error) throw error;
       
-      onLogin();
       toast({
         title: "Magic link sent",
-        description: "Check your phone for a link to sign in!"
+        description: "Check your phone for a text message with a link to sign in!"
       });
     } catch (error: any) {
       console.error("Auth error:", error);
@@ -196,10 +204,10 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
                 </div>
                 
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Signing up..." : "RSVP"}
+                  {isLoading ? "Sending magic link..." : "Send magic link"}
                 </Button>
                 
-                <div className="text-center">
+                <div className="text-center mt-4">
                   <Button 
                     type="button" 
                     variant="outline"
@@ -218,7 +226,7 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
             <form onSubmit={handleSubmit}>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="signin-phone">Your Number</Label>
+                  <Label htmlFor="phone">Your Number</Label>
                   <Input 
                     id="phone"
                     type="tel" 
@@ -228,7 +236,7 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Signing in..." : "Go"}
+                  {isLoading ? "Sending magic link..." : "Send magic link"}
                 </Button>
                 
                 <div className="text-center mt-4">
