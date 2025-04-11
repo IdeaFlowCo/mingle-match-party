@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -26,6 +28,7 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
   const [activeTab, setActiveTab] = useState("signup");
   const [isLoading, setIsLoading] = useState(false);
   const [showDevLogin, setShowDevLogin] = useState(false);
+  const [devLoginMode, setDevLoginMode] = useState(true); // Default to true for developer convenience
   const [formData, setFormData] = useState<FormData>({
     phone: "",
     name: "",
@@ -63,25 +66,37 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
         : undefined;
       
       console.log(`Auth mode: ${activeTab}`, options ? "with user data" : "without user data");
-      console.log("Calling supabase.auth.signInWithOtp...");
       
-      const { data, error } = await supabase.auth.signInWithOtp({
-        email: email,
-        options
-      });
-      
-      console.log("OTP response received:", data ? "Success" : "No data", error ? `Error: ${error.message}` : "No errors");
-      
-      if (error) throw error;
-      
-      console.log("Magic link sent successfully to", email);
-      toast({
-        title: "Magic link sent",
-        description: "Check apppublishing+superconnectortest@proton.me for a magic link to sign in!"
-      });
-      
-      // Show the dev login button after successfully sending magic link
-      setShowDevLogin(true);
+      // If dev login mode is enabled, skip sending the email and show the dev login button directly
+      if (devLoginMode) {
+        console.log("Dev login mode enabled, skipping email sending");
+        setShowDevLogin(true);
+        toast({
+          title: "Dev login mode enabled",
+          description: "Email sending skipped. Use the Dev Login button to sign in."
+        });
+      } else {
+        // Normal flow - send the magic link email
+        console.log("Calling supabase.auth.signInWithOtp...");
+        
+        const { data, error } = await supabase.auth.signInWithOtp({
+          email: email,
+          options
+        });
+        
+        console.log("OTP response received:", data ? "Success" : "No data", error ? `Error: ${error.message}` : "No errors");
+        
+        if (error) throw error;
+        
+        console.log("Magic link sent successfully to", email);
+        toast({
+          title: "Magic link sent",
+          description: "Check apppublishing+superconnectortest@proton.me for a magic link to sign in!"
+        });
+        
+        // Show the dev login button after successfully sending magic link
+        setShowDevLogin(true);
+      }
     } catch (error: any) {
       console.error("Auth error details:", error);
       toast({
@@ -290,8 +305,22 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
                   />
                 </div>
                 
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="devMode" 
+                    checked={devLoginMode}
+                    onCheckedChange={(checked) => setDevLoginMode(checked as boolean)} 
+                  />
+                  <label
+                    htmlFor="devMode"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Dev Login Mode (Skip email sending)
+                  </label>
+                </div>
+                
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Sending magic link..." : "Send magic link"}
+                  {isLoading ? "Processing..." : "Send magic link"}
                 </Button>
                 
                 {/* Show Dev Login button after magic link is sent */}
@@ -338,8 +367,23 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
                     Magic link will be sent to: apppublishing+superconnectortest@proton.me
                   </p>
                 </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="devModeSignIn" 
+                    checked={devLoginMode}
+                    onCheckedChange={(checked) => setDevLoginMode(checked as boolean)} 
+                  />
+                  <label
+                    htmlFor="devModeSignIn"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Dev Login Mode (Skip email sending)
+                  </label>
+                </div>
+                
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Sending magic link..." : "Send magic link"}
+                  {isLoading ? "Processing..." : "Send magic link"}
                 </Button>
                 
                 {/* Show Dev Login button after magic link is sent */}
