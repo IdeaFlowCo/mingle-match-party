@@ -103,15 +103,29 @@ export const handleDevLogin = async (
           }
         });
         
-        if (signUpError) throw signUpError;
-        
-        // Then try signing in again
-        const { error: retryError } = await supabase.auth.signInWithPassword({
-          email: email,
-          password: devPassword
-        });
-        
-        if (retryError) throw retryError;
+        if (signUpError) {
+          // Check if the user already exists error occurs during signup
+          if (signUpError.message.includes("User already registered")) {
+            console.log("User exists but password might be different, attempting recovery");
+            // Try to sign in again with the fixed password anyway
+            const { data: retryData, error: retryError } = await supabase.auth.signInWithPassword({
+              email: email,
+              password: devPassword
+            });
+            
+            if (retryError) throw retryError;
+          } else {
+            throw signUpError;
+          }
+        } else {
+          // Then try signing in again if signup was successful
+          const { error: retryError } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: devPassword
+          });
+          
+          if (retryError) throw retryError;
+        }
       } else if (error) {
         throw error;
       }
@@ -146,15 +160,28 @@ export const handleDevLogin = async (
           }
         });
         
-        if (signUpError) throw signUpError;
-        
-        // After creating the user, we need to sign them in
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: email,
-          password: devPassword
-        });
-        
-        if (signInError) throw signInError;
+        // If we get "User already registered" error, try logging in with the password again
+        if (signUpError && signUpError.message.includes("User already registered")) {
+          console.log("User exists but couldn't log in initially, trying again with fixed password");
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: devPassword
+          });
+          
+          if (signInError) throw signInError;
+        } 
+        else if (signUpError) {
+          throw signUpError;
+        }
+        else {
+          // After creating the user, we need to sign them in
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: devPassword
+          });
+          
+          if (signInError) throw signInError;
+        }
       }
     }
     

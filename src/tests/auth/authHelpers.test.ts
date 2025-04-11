@@ -161,6 +161,46 @@ describe('Auth Helpers', () => {
       expect(mockSignIn).toHaveBeenCalledTimes(2);
       expect(onLogin).toHaveBeenCalled();
     });
+    
+    it('should handle "User already registered" error during signup', async () => {
+      // Mock failed sign in, then failed sign up with "User already registered", then successful sign in
+      const mockSignIn = supabase.auth.signInWithPassword as any;
+      mockSignIn
+        .mockResolvedValueOnce({
+          data: null,
+          error: { message: 'Invalid login credentials' }
+        })
+        .mockResolvedValueOnce({
+          data: { user: { id: 'existing-user-id' } },
+          error: null
+        });
+      
+      const mockSignUp = supabase.auth.signUp as any;
+      mockSignUp.mockResolvedValue({
+        data: null,
+        error: { message: 'User already registered' }
+      });
+      
+      const setIsLoading = vi.fn();
+      const onLogin = vi.fn();
+      const onOpenChange = vi.fn();
+      
+      await handleDevLogin(
+        setIsLoading, 
+        'signin',
+        { phone: '1234567890' },
+        onLogin,
+        onOpenChange
+      );
+      
+      // Verify sign in was attempted again after "User already registered" error
+      expect(mockSignUp).toHaveBeenCalled();
+      expect(mockSignIn).toHaveBeenCalledTimes(2);
+      expect(onLogin).toHaveBeenCalled();
+      expect(toast).toHaveBeenCalledWith(expect.objectContaining({
+        title: "Dev login successful"
+      }));
+    });
   });
   
   describe('generateMagicLink', () => {
