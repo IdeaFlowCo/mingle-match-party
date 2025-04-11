@@ -1,3 +1,4 @@
+
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -197,10 +198,13 @@ export const generateMagicLink = async (): Promise<string> => {
     
     console.log("Magic link generated successfully via OTP");
     
-    // For demonstration purposes, we'll create a fake direct login URL
+    // For demonstration purposes in dev mode, we'll create a more realistic magic link
     // In a real app, the user would get this link in their email
     const baseUrl = window.location.origin;
-    const fakeLoginLink = `${baseUrl}/auth/confirm?email=${encodeURIComponent(email)}&token=DEMO_TOKEN`;
+    
+    // Generate a realistic-looking token (not an actual token)
+    const randomToken = generateRandomToken();
+    const fakeLoginLink = `${baseUrl}/auth/confirm?email=${encodeURIComponent(email)}&token=${randomToken}`;
     
     // In a real application, return "" since the link is emailed
     // For demo, return the fake link that will work with our auth flow
@@ -216,3 +220,25 @@ export const generateMagicLink = async (): Promise<string> => {
     return ""; // Return empty string if failed
   }
 };
+
+// Helper function to generate a random token that looks like a real token
+function generateRandomToken(): string {
+  // Generate a realistic looking token
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let token = "";
+  
+  // First part (32 chars)
+  for (let i = 0; i < 32; i++) {
+    token += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  
+  // Add a dash
+  token += "-";
+  
+  // Second part (6 chars)
+  for (let i = 0; i < 6; i++) {
+    token += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  
+  return token;
+}

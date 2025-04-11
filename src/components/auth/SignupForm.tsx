@@ -42,6 +42,7 @@ const SignupForm = ({
     bio: "",
     lookingFor: ""
   });
+  const [lastRequestTime, setLastRequestTime] = useState(0);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
@@ -80,6 +81,12 @@ const SignupForm = ({
           description: "Direct magic link generated. Click it to sign in."
         });
       } else {
+        // Check if we need to enforce timeout (only for non-dev mode)
+        const currentTime = Date.now();
+        if (currentTime - lastRequestTime < 5000) { // 5 seconds timeout
+          throw new Error("Please wait a few seconds before requesting another magic link");
+        }
+        
         // Normal flow - send the magic link email
         console.log("Calling supabase.auth.signInWithOtp...");
         
@@ -91,6 +98,9 @@ const SignupForm = ({
         console.log("OTP response received:", data ? "Success" : "No data", error ? `Error: ${error.message}` : "No errors");
         
         if (error) throw error;
+        
+        // Update last request time
+        setLastRequestTime(currentTime);
         
         console.log("Magic link sent successfully to", email);
         toast({
