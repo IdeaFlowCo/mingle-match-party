@@ -59,9 +59,10 @@ const EventPage = () => {
       
       try {
         console.log("Fetching event with id:", eventId);
+        // Fix: Remove the creator:creator_id relationship that doesn't exist
         const { data, error } = await supabase
           .from('superconnector_events')
-          .select('*, creator:creator_id(name)')
+          .select('*')
           .eq('id', eventId)
           .single();
           
