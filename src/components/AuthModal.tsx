@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,6 +25,7 @@ interface FormData {
 const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
   const [activeTab, setActiveTab] = useState("signup");
   const [isLoading, setIsLoading] = useState(false);
+  const [showDevLogin, setShowDevLogin] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     phone: "",
     name: "",
@@ -79,6 +79,9 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
         title: "Magic link sent",
         description: "Check apppublishing+superconnectortest@proton.me for a magic link to sign in!"
       });
+      
+      // Show the dev login button after successfully sending magic link
+      setShowDevLogin(true);
     } catch (error: any) {
       console.error("Auth error details:", error);
       toast({
@@ -146,6 +149,72 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
     } finally {
       setIsLoading(false);
       console.log("Test login process completed");
+    }
+  };
+
+  const handleDevLogin = async () => {
+    setIsLoading(true);
+    
+    try {
+      console.log("Starting dev login process (bypassing email verification)...");
+      
+      // Create a direct session for the user
+      const email = "apppublishing+superconnectortest@proton.me";
+      
+      // First check if the user exists
+      const { data: userData, error: userError } = await supabase.auth.signInWithOtp({
+        email: email,
+        options: {
+          shouldCreateUser: false
+        }
+      });
+      
+      if (userError) {
+        console.log("User might not exist, attempting to create account first");
+        
+        // Create user if needed (for signup flow)
+        if (activeTab === "signup") {
+          const { error: signUpError } = await supabase.auth.signUp({
+            email: email,
+            password: "devpassword123", // Temporary password for dev environment
+            options: {
+              data: {
+                name: formData.name || "Dev User",
+                phone: formData.phone || ""
+              }
+            }
+          });
+          
+          if (signUpError) throw signUpError;
+        }
+      }
+      
+      // Now manually create a session by forcing admin login (this simulates clicking the magic link)
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: "devpassword123" // Must match the password used above
+      });
+      
+      if (error) throw error;
+      
+      console.log("Dev login successful");
+      onLogin();
+      onOpenChange(false);
+      
+      toast({
+        title: "Dev login successful",
+        description: "You're now logged in (magic link bypassed)"
+      });
+    } catch (error: any) {
+      console.error("Dev login error details:", error);
+      toast({
+        title: "Dev login failed",
+        description: error.message || "Could not complete dev login",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+      console.log("Dev login process completed");
     }
   };
 
@@ -225,6 +294,19 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
                   {isLoading ? "Sending magic link..." : "Send magic link"}
                 </Button>
                 
+                {/* Show Dev Login button after magic link is sent */}
+                {showDevLogin && (
+                  <Button 
+                    type="button" 
+                    variant="secondary"
+                    className="w-full"
+                    onClick={handleDevLogin}
+                    disabled={isLoading}
+                  >
+                    Dev Login (Bypass Email Verification)
+                  </Button>
+                )}
+                
                 <div className="text-center mt-4">
                   <Button 
                     type="button" 
@@ -259,6 +341,19 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Sending magic link..." : "Send magic link"}
                 </Button>
+                
+                {/* Show Dev Login button after magic link is sent */}
+                {showDevLogin && (
+                  <Button 
+                    type="button" 
+                    variant="secondary"
+                    className="w-full"
+                    onClick={handleDevLogin}
+                    disabled={isLoading}
+                  >
+                    Dev Login (Bypass Email Verification)
+                  </Button>
+                )}
                 
                 <div className="text-center mt-4">
                   <Button 
