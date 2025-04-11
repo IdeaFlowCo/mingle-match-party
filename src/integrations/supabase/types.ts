@@ -54,6 +54,166 @@ export type Database = {
         }
         Relationships: []
       }
+      superconnector_attendee_matches: {
+        Row: {
+          created_at: string | null
+          event_id: string | null
+          id: string
+          match_id: string | null
+          match_reason: string | null
+          match_score: number
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
+          match_id?: string | null
+          match_reason?: string | null
+          match_score: number
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
+          match_id?: string | null
+          match_reason?: string | null
+          match_score?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "superconnector_attendee_matches_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "superconnector_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "superconnector_attendee_matches_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "superconnector_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "superconnector_attendee_matches_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "superconnector_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      superconnector_attendees: {
+        Row: {
+          created_at: string | null
+          event_id: string | null
+          id: string
+          rsvp_status: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
+          rsvp_status: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          event_id?: string | null
+          id?: string
+          rsvp_status?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "superconnector_attendees_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "superconnector_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "superconnector_attendees_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "superconnector_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      superconnector_events: {
+        Row: {
+          created_at: string | null
+          creator_id: string
+          description: string | null
+          end_time: string
+          id: string
+          location: string | null
+          start_time: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          creator_id: string
+          description?: string | null
+          end_time: string
+          id?: string
+          location?: string | null
+          start_time: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          creator_id?: string
+          description?: string | null
+          end_time?: string
+          id?: string
+          location?: string | null
+          start_time?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      superconnector_profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          id: string
+          interests: string[] | null
+          name: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          id: string
+          interests?: string[] | null
+          name?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          id?: string
+          interests?: string[] | null
+          name?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

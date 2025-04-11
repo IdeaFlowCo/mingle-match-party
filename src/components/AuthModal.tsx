@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -15,11 +17,91 @@ interface AuthModalProps {
 
 const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
   const [activeTab, setActiveTab] = useState("signup");
-  const [isNewUser, setIsNewUser] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    phone: "",
+    name: "",
+    twitter: "",
+    bio: "",
+    lookingFor: ""
+  });
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.id]: e.target.value
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onLogin();
+    setIsLoading(true);
+    
+    try {
+      // In a real app, we would implement actual authentication here
+      // For now, we'll just call the onLogin callback
+      onLogin();
+      toast({
+        title: "Signed in successfully",
+        description: "Welcome to Superconnector!"
+      });
+    } catch (error) {
+      console.error("Auth error:", error);
+      toast({
+        title: "Authentication error",
+        description: error.message || "Failed to authenticate. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleTestLogin = async () => {
+    setIsLoading(true);
+    
+    try {
+      // Use a test email and password for quick sign in
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: "test@example.com",
+        password: "password123"
+      });
+      
+      // If the user doesn't exist, sign up first
+      if (error && error.message.includes("Invalid login credentials")) {
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: "test@example.com",
+          password: "password123",
+          options: {
+            data: {
+              name: "Test User",
+              bio: "I'm a test user interested in technology, entrepreneurship, and design."
+            }
+          }
+        });
+        
+        if (signUpError) throw signUpError;
+      } else if (error) {
+        throw error;
+      }
+      
+      onLogin();
+      onOpenChange(false);
+      
+      toast({
+        title: "Test login successful",
+        description: "You're signed in as a test user"
+      });
+    } catch (error) {
+      console.error("Test login error:", error);
+      toast({
+        title: "Test login failed",
+        description: error.message || "Could not log in as test user",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -42,38 +124,70 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="phone">Your Number</Label>
-                  <Input id="phone" type="tel" placeholder="Enter your phone number" />
+                  <Input 
+                    id="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    placeholder="Enter your phone number" 
+                  />
                 </div>
                 
                 <div>
                   <Label htmlFor="name">Your Name</Label>
-                  <Input id="name" placeholder="Enter your name" />
+                  <Input 
+                    id="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="Enter your name" 
+                  />
                 </div>
                 
                 <div>
                   <Label htmlFor="twitter">Your Twitter (optional)</Label>
-                  <Input id="twitter" placeholder="@username" />
+                  <Input 
+                    id="twitter"
+                    value={formData.twitter}
+                    onChange={handleChange}
+                    placeholder="@username" 
+                  />
                 </div>
                 
                 <div>
                   <Label htmlFor="bio">Your bio (optional)</Label>
                   <Textarea 
                     id="bio" 
+                    value={formData.bio}
+                    onChange={handleChange}
                     placeholder="Tell us about yourself and your interests"
                   />
                 </div>
                 
                 <div>
-                  <Label htmlFor="looking-for">What you're looking for (optional)</Label>
+                  <Label htmlFor="lookingFor">What you're looking for (optional)</Label>
                   <Textarea 
-                    id="looking-for" 
+                    id="lookingFor" 
+                    value={formData.lookingFor}
+                    onChange={handleChange}
                     placeholder="What kind of connections are you seeking?"
                   />
                 </div>
                 
-                <Button type="submit" className="w-full">
-                  RSVP
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Signing up..." : "RSVP"}
                 </Button>
+                
+                <div className="text-center">
+                  <Button 
+                    type="button" 
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleTestLogin}
+                    disabled={isLoading}
+                  >
+                    Test Login (Quick Access)
+                  </Button>
+                </div>
               </div>
             </form>
           </TabsContent>
@@ -85,9 +199,21 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
                   <Label htmlFor="signin-phone">Your Number</Label>
                   <Input id="signin-phone" type="tel" placeholder="Enter your phone number" />
                 </div>
-                <Button type="submit" className="w-full">
-                  Go
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Signing in..." : "Go"}
                 </Button>
+                
+                <div className="text-center mt-4">
+                  <Button 
+                    type="button" 
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleTestLogin}
+                    disabled={isLoading}
+                  >
+                    Test Login (Quick Access)
+                  </Button>
+                </div>
               </div>
             </form>
           </TabsContent>
