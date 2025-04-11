@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import EventDetails from "@/components/EventDetails";
+import AttendeesList from "@/components/AttendeesList";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -20,6 +21,8 @@ const EventPage = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [userRsvpStatus, setUserRsvpStatus] = useState<string | null>(null);
+  const [attendees, setAttendees] = useState<any[]>([]);
+  const [attendeesLoading, setAttendeesLoading] = useState(true);
 
   useEffect(() => {
     // Check if user is logged in
@@ -87,6 +90,57 @@ const EventPage = () => {
     };
     
     fetchEvent();
+
+    // Fetch attendees for this event
+    const fetchAttendees = async () => {
+      if (!eventId) return;
+      
+      try {
+        setAttendeesLoading(true);
+        
+        // Fetch attendees with their profile information
+        const { data: attendeesData, error: attendeesError } = await supabase
+          .from('superconnector_attendees')
+          .select(`
+            id,
+            rsvp_status,
+            user_id,
+            superconnector_profiles:user_id (
+              id,
+              name,
+              bio,
+              avatar_url
+            )
+          `)
+          .eq('event_id', eventId)
+          .eq('rsvp_status', 'going');
+          
+        if (attendeesError) {
+          throw attendeesError;
+        }
+        
+        // Transform the data for the AttendeesList component
+        const formattedAttendees = attendeesData.map(attendee => ({
+          id: attendee.user_id,
+          name: attendee.superconnector_profiles?.name || 'Anonymous',
+          bio: attendee.superconnector_profiles?.bio || 'No bio available',
+          isTopMatch: false // We'll set this later when we implement matching
+        }));
+        
+        setAttendees(formattedAttendees);
+      } catch (error) {
+        console.error("Error fetching attendees:", error);
+        toast({
+          title: "Error fetching attendees",
+          description: "Could not load attendee information.",
+          variant: "destructive"
+        });
+      } finally {
+        setAttendeesLoading(false);
+      }
+    };
+    
+    fetchAttendees();
   }, [eventId, toast]);
 
   const handleRsvp = async (status: 'going' | 'maybe' | 'not_going') => {
@@ -141,6 +195,36 @@ const EventPage = () => {
         title: "RSVP updated",
         description: message
       });
+
+      // Refresh the attendees list if the status changed to or from going
+      if (status === 'going' || userRsvpStatus === 'going') {
+        // Refetch attendees list to update it
+        const { data: attendeesData } = await supabase
+          .from('superconnector_attendees')
+          .select(`
+            id,
+            rsvp_status,
+            user_id,
+            superconnector_profiles:user_id (
+              id,
+              name,
+              bio,
+              avatar_url
+            )
+          `)
+          .eq('event_id', eventId)
+          .eq('rsvp_status', 'going');
+
+        if (attendeesData) {
+          const formattedAttendees = attendeesData.map(attendee => ({
+            id: attendee.user_id,
+            name: attendee.superconnector_profiles?.name || 'Anonymous',
+            bio: attendee.superconnector_profiles?.bio || 'No bio available',
+            isTopMatch: false
+          }));
+          setAttendees(formattedAttendees);
+        }
+      }
     } catch (error) {
       console.error("Error with RSVP:", error);
       toast({
@@ -160,6 +244,11 @@ const EventPage = () => {
     } catch (e) {
       return "Date and time to be announced";
     }
+  };
+
+  const handleSignInClick = () => {
+    // Redirect to sign in page or open sign in modal
+    navigate('/?signin=true');
   };
 
   if (loadError) {
@@ -193,15 +282,34 @@ const EventPage = () => {
             <Skeleton className="h-6 w-1/2" />
           </div>
         ) : event ? (
-          <EventDetails 
-            title={event.title}
-            description={event.description}
-            location={event.location}
-            dateTime={formatDateTime(event.start_time, event.end_time)}
-            isLoggedIn={isLoggedIn}
-            userRsvpStatus={userRsvpStatus}
-            onRsvpClick={handleRsvp}
-          />
+          <>
+            <EventDetails 
+              title={event.title}
+              description={event.description}
+              location={event.location}
+              dateTime={formatDateTime(event.start_time, event.end_time)}
+              isLoggedIn={isLoggedIn}
+              userRsvpStatus={userRsvpStatus}
+              onRsvpClick={handleRsvp}
+            />
+            
+            <div className="border-t border-gray-200 pt-8 mt-8">
+              {attendeesLoading ? (
+                <div className="space-y-4 max-w-3xl mx-auto">
+                  <Skeleton className="h-8 w-40" />
+                  <Skeleton className="h-24 w-full" />
+                  <Skeleton className="h-24 w-full" />
+                </div>
+              ) : (
+                <AttendeesList
+                  attendees={attendees}
+                  totalCount={attendees.length}
+                  isLoggedIn={isLoggedIn}
+                  onSignInClick={handleSignInClick}
+                />
+              )}
+            </div>
+          </>
         ) : (
           <div className="text-center py-12">
             <h2 className="text-2xl font-bold">Event not found</h2>
