@@ -1,6 +1,7 @@
 
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, Clock } from "lucide-react";
+import { Calendar, MapPin, Clock, Check, X, HelpCircle } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface EventDetailsProps {
   title: string;
@@ -8,7 +9,8 @@ interface EventDetailsProps {
   location: string;
   dateTime: string;
   isLoggedIn: boolean;
-  onRsvpClick: () => void;
+  userRsvpStatus: string | null;
+  onRsvpClick: (status: 'going' | 'maybe' | 'not_going') => void;
 }
 
 const EventDetails = ({
@@ -17,6 +19,7 @@ const EventDetails = ({
   location,
   dateTime,
   isLoggedIn,
+  userRsvpStatus,
   onRsvpClick,
 }: EventDetailsProps) => {
   return (
@@ -38,15 +41,46 @@ const EventDetails = ({
         </div>
       </div>
       
-      <div className="flex space-x-4 mb-10">
-        <Button 
-          onClick={onRsvpClick}
-          className="bg-superconnector-purple hover:bg-superconnector-purple-dark"
-        >
-          RSVP - Yes
-        </Button>
-        <Button variant="outline">Maybe</Button>
-        <Button variant="ghost">No</Button>
+      <div className="mb-10">
+        <p className="text-sm font-medium mb-2">RSVP to this event:</p>
+        
+        {isLoggedIn ? (
+          <ToggleGroup type="single" value={userRsvpStatus || undefined} className="flex gap-2">
+            <ToggleGroupItem 
+              value="going" 
+              onClick={() => onRsvpClick('going')}
+              className={`flex items-center gap-1 ${userRsvpStatus === 'going' ? 'bg-green-100' : ''}`}
+              variant="outline"
+            >
+              <Check className="h-4 w-4" />
+              Yes
+            </ToggleGroupItem>
+            
+            <ToggleGroupItem 
+              value="maybe" 
+              onClick={() => onRsvpClick('maybe')}
+              className={`flex items-center gap-1 ${userRsvpStatus === 'maybe' ? 'bg-yellow-100' : ''}`}
+              variant="outline"
+            >
+              <HelpCircle className="h-4 w-4" />
+              Maybe
+            </ToggleGroupItem>
+            
+            <ToggleGroupItem 
+              value="not_going" 
+              onClick={() => onRsvpClick('not_going')}
+              className={`flex items-center gap-1 ${userRsvpStatus === 'not_going' ? 'bg-red-100' : ''}`}
+              variant="outline"
+            >
+              <X className="h-4 w-4" />
+              No
+            </ToggleGroupItem>
+          </ToggleGroup>
+        ) : (
+          <div className="text-sm text-gray-500">
+            Please sign in to RSVP for this event.
+          </div>
+        )}
       </div>
     </div>
   );

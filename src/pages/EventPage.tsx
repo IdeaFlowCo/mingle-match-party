@@ -15,12 +15,33 @@ const EventPage = () => {
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userRsvpStatus, setUserRsvpStatus] = useState<string | null>(null);
 
   useEffect(() => {
     // Check if user is logged in
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      setIsLoggedIn(!!session);
+      const loggedIn = !!session;
+      setIsLoggedIn(loggedIn);
+      
+      if (loggedIn && session?.user?.id) {
+        setUserId(session.user.id);
+        
+        // Fetch user's RSVP status if logged in
+        if (eventId) {
+          const { data: rsvpData, error: rsvpError } = await supabase
+            .from('superconnector_attendees')
+            .select('rsvp_status')
+            .eq('event_id', eventId)
+            .eq('user_id', session.user.id)
+            .single();
+            
+          if (!rsvpError && rsvpData) {
+            setUserRsvpStatus(rsvpData.rsvp_status);
+          }
+        }
+      }
     };
     
     checkAuth();
@@ -59,7 +80,7 @@ const EventPage = () => {
     fetchEvent();
   }, [eventId, toast]);
 
-  const handleRsvp = async () => {
+  const handleRsvp = async (status: 'going' | 'maybe' | 'not_going') => {
     try {
       if (!isLoggedIn) {
         toast({
@@ -70,30 +91,52 @@ const EventPage = () => {
         return;
       }
       
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      if (!userId) {
+        toast({
+          title: "User ID not found",
+          description: "Please sign in again.",
+          variant: "destructive"
+        });
+        return;
+      }
       
       const { error } = await supabase
         .from('superconnector_attendees')
         .upsert({
           event_id: eventId,
-          user_id: session.user.id,
-          rsvp_status: 'going'
+          user_id: userId,
+          rsvp_status: status
         });
         
       if (error) {
         throw error;
       }
       
+      setUserRsvpStatus(status);
+      
+      // Show appropriate message based on RSVP status
+      let message = "";
+      switch (status) {
+        case 'going':
+          message = "You're now registered for this event!";
+          break;
+        case 'maybe':
+          message = "You've marked yourself as maybe attending.";
+          break;
+        case 'not_going':
+          message = "You've declined this event.";
+          break;
+      }
+      
       toast({
-        title: "RSVP confirmed",
-        description: "You're now registered for this event."
+        title: "RSVP updated",
+        description: message
       });
     } catch (error) {
       console.error("Error with RSVP:", error);
       toast({
         title: "Error with RSVP",
-        description: error.message || "Could not register for this event. Please try again.",
+        description: "Could not update your RSVP status. Please try again.",
         variant: "destructive"
       });
     }
@@ -129,6 +172,7 @@ const EventPage = () => {
             location={event.location}
             dateTime={formatDateTime(event.start_time, event.end_time)}
             isLoggedIn={isLoggedIn}
+            userRsvpStatus={userRsvpStatus}
             onRsvpClick={handleRsvp}
           />
         ) : (
