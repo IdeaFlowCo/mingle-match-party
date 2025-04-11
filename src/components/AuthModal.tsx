@@ -1,3 +1,4 @@
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +24,10 @@ interface AuthModalProps {
   onLogin?: () => void;
 }
 
+interface ExistingProfileResult {
+  id: string;
+}
+
 const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -30,7 +35,6 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   
-  // Fix by explicitly typing the maybeSingle result
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -41,7 +45,7 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
         .from('superconnector_profiles')
         .select('id')
         .eq('phone', phone)
-        .maybeSingle();
+        .maybeSingle<ExistingProfileResult>();
       
       if (existingProfile) {
         // User exists, log them in

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -11,21 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Save, Phone, Twitter, Pencil } from "lucide-react";
-
-// Define extended profile data interface with the additional fields
-interface ExtendedProfileData {
-  name: string;
-  phone: string;
-  twitter: string;
-  bio: string;
-  lookingFor: string;
-  avatar_url: string;
-  // Add other fields that might be in the database
-  id?: string;
-  created_at?: string;
-  updated_at?: string;
-  interests?: string[];
-}
+import { Profile, ProfileData } from "@/types/profile";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -34,7 +19,7 @@ const ProfilePage = () => {
   const [user, setUser] = useState<any>(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [profileData, setProfileData] = useState<ExtendedProfileData>({
+  const [profileData, setProfileData] = useState<ProfileData>({
     name: "",
     phone: "",
     twitter: "",

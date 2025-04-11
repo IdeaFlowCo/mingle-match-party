@@ -8,26 +8,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { User, Twitter, Phone, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-// Create an extended interface that explicitly includes all fields we need
-interface ProfileData {
-  id: string;
-  name: string;
-  bio: string;
-  phone: string;
-  twitter: string;
-  lookingFor: string;
-  avatar_url: string;
-  interests: string[];
-  // Include other potential fields from the DB
-  created_at?: string;
-  updated_at?: string;
-}
+import { Profile } from "@/types/profile";
 
 const UserProfilePage = () => {
   const [searchParams] = useSearchParams();
   const userId = searchParams.get("id");
-  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const { toast } = useToast();
@@ -59,19 +45,7 @@ const UserProfilePage = () => {
           throw error;
         }
         
-        // Make sure we assign all the necessary properties
-        setProfile({
-          id: data.id,
-          name: data.name || '',
-          bio: data.bio || '',
-          phone: data.phone || '',
-          twitter: data.twitter || '',
-          lookingFor: data.lookingFor || '',
-          avatar_url: data.avatar_url || '',
-          interests: data.interests || [],
-          created_at: data.created_at,
-          updated_at: data.updated_at
-        });
+        setProfile(data as Profile);
       } catch (error) {
         console.error("Error fetching profile:", error);
         toast({
@@ -131,7 +105,7 @@ const UserProfilePage = () => {
       .join("")
       .toUpperCase();
   };
-
+  
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -154,9 +128,9 @@ const UserProfilePage = () => {
                 <div className="flex flex-col md:flex-row gap-8">
                   <Avatar className="h-40 w-40">
                     {profile.avatar_url ? (
-                      <AvatarImage src={profile.avatar_url} alt={profile.name} />
+                      <AvatarImage src={profile.avatar_url} alt={profile.name || ''} />
                     ) : null}
-                    <AvatarFallback className="text-4xl">{getInitials(profile.name)}</AvatarFallback>
+                    <AvatarFallback className="text-4xl">{getInitials(profile.name || '')}</AvatarFallback>
                   </Avatar>
                   
                   <div className="flex-1">
