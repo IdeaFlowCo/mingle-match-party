@@ -2,10 +2,9 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { handleTestLogin, handleDevLogin } from "./utils/authHelpers";
+import { handleTestLogin, handleDevLogin, generateMagicLink } from "./utils/authHelpers";
 import SignupForm from "./SignupForm";
 import LoginForm from "./LoginForm";
-import DevLoginButton from "./DevLoginButton";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -16,7 +15,8 @@ interface AuthModalProps {
 const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
   const [activeTab, setActiveTab] = useState("signup");
   const [isLoading, setIsLoading] = useState(false);
-  const [showDevLogin, setShowDevLogin] = useState(false);
+  const [showMagicLink, setShowMagicLink] = useState(false);
+  const [magicLink, setMagicLink] = useState("");
   const [devLoginMode, setDevLoginMode] = useState(true); // Default to true for developer convenience
   
   const handleOnDevLogin = () => {
@@ -31,6 +31,17 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
   
   const handleOnTestLogin = () => {
     handleTestLogin(setIsLoading, onLogin, onOpenChange);
+  };
+
+  const handleGenerateMagicLink = async () => {
+    setIsLoading(true);
+    try {
+      const link = await generateMagicLink();
+      setMagicLink(link);
+      setShowMagicLink(true);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -54,17 +65,24 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
               setIsLoading={setIsLoading}
               devLoginMode={devLoginMode}
               setDevLoginMode={setDevLoginMode}
-              setShowDevLogin={setShowDevLogin}
-              onDevLogin={handleOnDevLogin}
+              setShowMagicLink={setShowMagicLink}
+              onGenerateMagicLink={handleGenerateMagicLink}
               onTestLogin={handleOnTestLogin}
             />
             
-            {/* Show Dev Login button after magic link is sent */}
-            {showDevLogin && (
-              <DevLoginButton 
-                onDevLogin={handleOnDevLogin}
-                isLoading={isLoading}
-              />
+            {/* Show Magic Link after request */}
+            {showMagicLink && magicLink && (
+              <div className="mt-4 p-3 border rounded-md bg-muted/50">
+                <p className="text-sm mb-2">Use this magic link to sign in instantly:</p>
+                <a 
+                  href={magicLink} 
+                  className="text-primary underline text-sm break-all"
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  {magicLink}
+                </a>
+              </div>
             )}
           </TabsContent>
           
@@ -74,17 +92,24 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
               setIsLoading={setIsLoading}
               devLoginMode={devLoginMode}
               setDevLoginMode={setDevLoginMode}
-              setShowDevLogin={setShowDevLogin}
-              onDevLogin={handleOnDevLogin}
+              setShowMagicLink={setShowMagicLink}
+              onGenerateMagicLink={handleGenerateMagicLink}
               onTestLogin={handleOnTestLogin}
             />
             
-            {/* Show Dev Login button after magic link is sent */}
-            {showDevLogin && (
-              <DevLoginButton 
-                onDevLogin={handleOnDevLogin}
-                isLoading={isLoading}
-              />
+            {/* Show Magic Link after request */}
+            {showMagicLink && magicLink && (
+              <div className="mt-4 p-3 border rounded-md bg-muted/50">
+                <p className="text-sm mb-2">Use this magic link to sign in instantly:</p>
+                <a 
+                  href={magicLink} 
+                  className="text-primary underline text-sm break-all"
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  {magicLink}
+                </a>
+              </div>
             )}
           </TabsContent>
         </Tabs>

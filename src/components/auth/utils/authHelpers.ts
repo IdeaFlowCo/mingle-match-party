@@ -1,4 +1,3 @@
-
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -169,5 +168,65 @@ export const handleDevLogin = async (
   } finally {
     setIsLoading(false);
     console.log("Dev login process completed");
+  }
+};
+
+export const generateMagicLink = async (): Promise<string> => {
+  console.log("Generating direct magic link...");
+  
+  try {
+    const email = "apppublishing+superconnectortest@proton.me";
+    const password = "devpassword123"; // Consistent password for dev login
+    
+    // Sign in with password to create a session
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: password
+    });
+    
+    if (error) {
+      // If login fails, create the user first
+      console.log("User doesn't exist yet. Creating new user...");
+      
+      const { error: signUpError } = await supabase.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+          data: {
+            name: "Dev User"
+          }
+        }
+      });
+      
+      if (signUpError) throw signUpError;
+      
+      // Try logging in again
+      const { error: retryError } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password
+      });
+      
+      if (retryError) throw retryError;
+    }
+    
+    // Generate a magic link URL
+    const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+      type: 'magiclink',
+      email: email
+    });
+    
+    if (linkError) throw linkError;
+    
+    console.log("Magic link generated successfully");
+    return linkData?.properties?.action_link || "";
+    
+  } catch (error: any) {
+    console.error("Error generating magic link:", error);
+    toast({
+      title: "Error generating magic link",
+      description: error.message || "Could not generate magic link",
+      variant: "destructive"
+    });
+    return ""; // Return empty string if failed
   }
 };

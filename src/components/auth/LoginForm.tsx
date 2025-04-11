@@ -12,8 +12,8 @@ interface LoginFormProps {
   setIsLoading: (loading: boolean) => void;
   devLoginMode: boolean;
   setDevLoginMode: (mode: boolean) => void;
-  setShowDevLogin: (show: boolean) => void;
-  onDevLogin: () => void;
+  setShowMagicLink: (show: boolean) => void;
+  onGenerateMagicLink: () => void;
   onTestLogin: () => void;
 }
 
@@ -22,8 +22,8 @@ const LoginForm = ({
   setIsLoading,
   devLoginMode,
   setDevLoginMode,
-  setShowDevLogin,
-  onDevLogin,
+  setShowMagicLink,
+  onGenerateMagicLink,
   onTestLogin
 }: LoginFormProps) => {
   const [phone, setPhone] = useState("");
@@ -39,13 +39,13 @@ const LoginForm = ({
       const email = "apppublishing+superconnectortest@proton.me";
       console.log(`Using email address: ${email}`);
       
-      // If dev login mode is enabled, skip sending the email and show the dev login button directly
+      // If dev login mode is enabled, skip sending the email and show the direct magic link
       if (devLoginMode) {
-        console.log("Dev login mode enabled, skipping email sending");
-        setShowDevLogin(true);
+        console.log("Dev login mode enabled, generating direct magic link");
+        onGenerateMagicLink();
         toast({
           title: "Dev login mode enabled",
-          description: "Email sending skipped. Use the Dev Login button to sign in."
+          description: "Direct magic link generated. Click it to sign in."
         });
       } else {
         // Normal flow - send the magic link email
@@ -64,9 +64,6 @@ const LoginForm = ({
           title: "Magic link sent",
           description: "Check apppublishing+superconnectortest@proton.me for a magic link to sign in!"
         });
-        
-        // Show the dev login button after successfully sending magic link
-        setShowDevLogin(true);
       }
     } catch (error: any) {
       console.error("Auth error details:", error);
@@ -108,7 +105,7 @@ const LoginForm = ({
             htmlFor="devModeSignIn"
             className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
           >
-            Dev Login Mode (Skip email sending)
+            Dev Login Mode (Generate direct magic link)
           </label>
         </div>
         
