@@ -13,45 +13,52 @@ const Navbar = () => {
   const [profile, setProfile] = useState<any>(null);
   
   useEffect(() => {
-    // Check if user is logged in
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user || null);
-      
-      if (session?.user) {
-        const { data } = await supabase
-          .from('superconnector_profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-          
-        setProfile(data);
-      }
-    };
-    
-    getSession();
-    
-    // Listen for auth changes
+    // Set up listener for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user || null);
+      const currentUser = session?.user || null;
+      setUser(currentUser);
       
-      if (session?.user) {
-        const { data } = await supabase
-          .from('superconnector_profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-          
-        setProfile(data);
+      if (currentUser) {
+        // Fetch profile data for the user
+        fetchProfile(currentUser.id);
       } else {
         setProfile(null);
       }
     });
     
+    // Check if user is logged in on load
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUser = session?.user || null;
+      setUser(currentUser);
+      
+      if (currentUser) {
+        // Fetch profile data for the user
+        fetchProfile(currentUser.id);
+      }
+    };
+    
+    getSession();
+    
     return () => {
       subscription.unsubscribe();
     };
   }, []);
+  
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('superconnector_profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (error) throw error;
+      setProfile(data);
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+    }
+  };
   
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -93,7 +100,7 @@ const Navbar = () => {
             </Button>
             
             <Button variant="ghost" className="p-0" asChild>
-              <Link to={profile ? `/user?id=${user.id}` : "/profile"}>
+              <Link to="/profile">
                 <Avatar className="h-8 w-8">
                   {profile?.avatar_url ? (
                     <AvatarImage src={profile.avatar_url} alt={profile?.name} />

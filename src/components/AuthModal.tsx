@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ interface AuthModalProps {
 }
 
 const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("signup");
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -25,6 +27,7 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
     bio: "",
     lookingFor: ""
   });
+  const [signinPhone, setSigninPhone] = useState("");
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
@@ -33,16 +36,111 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
     });
   };
 
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    try {
+      // In a real app with phone authentication, we would implement proper phone auth
+      // For now, we'll simulate by checking if a user with this phone exists
+      const { data, error } = await supabase
+        .from('superconnector_profiles')
+        .select('*')
+        .eq('phone', signinPhone)
+        .single();
+      
+      if (error) {
+        throw new Error("No account found with this phone number. Please sign up instead.");
+      }
+      
+      // Simulate successful sign in with test user
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: "test@example.com",
+        password: "password123"
+      });
+      
+      if (authError) throw authError;
+      
+      onLogin();
+      onOpenChange(false);
+      toast({
+        title: "Signed in successfully",
+        description: `Welcome back, ${data.name || "User"}!`
+      });
+    } catch (error) {
+      console.error("Auth error:", error);
+      toast({
+        title: "Authentication error",
+        description: error.message || "Failed to authenticate. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      // In a real app, we would implement actual authentication here
-      // For now, we'll just call the onLogin callback
+      // First check if a user with this phone already exists
+      const { data: existingUser } = await supabase
+        .from('superconnector_profiles')
+        .select('*')
+        .eq('phone', formData.phone)
+        .maybeSingle();
+      
+      if (existingUser) {
+        // User exists, sign them in instead
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email: "test@example.com",
+          password: "password123"
+        });
+        
+        if (authError) throw authError;
+        
+        onLogin();
+        onOpenChange(false);
+        toast({
+          title: "Signed in successfully",
+          description: `Welcome back, ${existingUser.name || "User"}!`
+        });
+        return;
+      }
+      
+      // New user, proceed with signup
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: `${formData.phone.replace(/[^0-9]/g, '')}@example.com`,
+        password: "password123",
+        options: {
+          data: {
+            name: formData.name,
+            phone: formData.phone
+          }
+        }
+      });
+      
+      if (authError) throw authError;
+      
+      // Store additional profile data
+      const { error: profileError } = await supabase
+        .from('superconnector_profiles')
+        .update({
+          name: formData.name,
+          phone: formData.phone,
+          bio: formData.bio,
+          twitter: formData.twitter,
+        })
+        .eq('id', authData.user?.id);
+        
+      if (profileError) throw profileError;
+      
       onLogin();
+      onOpenChange(false);
+      navigate("/profile");
       toast({
-        title: "Signed in successfully",
+        title: "Signed up successfully",
         description: "Welcome to Superconnector!"
       });
     } catch (error) {
@@ -75,12 +173,36 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
           options: {
             data: {
               name: "Test User",
-              bio: "I'm a test user interested in technology, entrepreneurship, and design."
+              phone: "555-123-4567"
             }
           }
         });
         
         if (signUpError) throw signUpError;
+        
+        // Create a profile for the test user
+        if (signUpData.user) {
+          const { error: profileError } = await supabase
+            .from('superconnector_profiles')
+            .upsert({
+              id: signUpData.user.id,
+              name: "Test User",
+              bio: "I'm a test user interested in technology, entrepreneurship, and design.",
+              twitter: "@testuser",
+              phone: "555-123-4567",
+              interests: ["Technology", "Startups", "Design", "Marketing"]
+            });
+            
+          if (profileError) throw profileError;
+        }
+        
+        // Try login again after creating the user
+        const { error: loginError } = await supabase.auth.signInWithPassword({
+          email: "test@example.com",
+          password: "password123"
+        });
+        
+        if (loginError) throw loginError;
       } else if (error) {
         throw error;
       }
@@ -193,11 +315,17 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
           </TabsContent>
           
           <TabsContent value="signin">
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSignIn}>
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="signin-phone">Your Number</Label>
-                  <Input id="signin-phone" type="tel" placeholder="Enter your phone number" />
+                  <Input 
+                    id="signin-phone" 
+                    type="tel" 
+                    value={signinPhone}
+                    onChange={(e) => setSigninPhone(e.target.value)}
+                    placeholder="Enter your phone number" 
+                  />
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Signing in..." : "Go"}
