@@ -79,9 +79,46 @@ export const handleDevLogin = async (
     const email = "apppublishing+superconnectortest@proton.me";
     const devPassword = "devpassword123"; // Consistent password for dev login
     
-    // For signup flow, create the user first if they don't exist
-    if (activeTab === "signup") {
-      console.log("Signup flow: Creating user if needed first");
+    // For sign-in flow, just attempt to sign in directly with the dev credentials
+    if (activeTab === "signin") {
+      console.log("Signin flow: Attempting to sign in with dev credentials");
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: devPassword
+      });
+      
+      // If user doesn't exist when signing in, create them first
+      if (error && error.message.includes("Invalid login credentials")) {
+        console.log("User doesn't exist yet, creating account first");
+        
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: email,
+          password: devPassword,
+          options: {
+            data: {
+              name: "Dev User",
+              phone: formData.phone || ""
+            }
+          }
+        });
+        
+        if (signUpError) throw signUpError;
+        
+        // Then try signing in again
+        const { error: retryError } = await supabase.auth.signInWithPassword({
+          email: email,
+          password: devPassword
+        });
+        
+        if (retryError) throw retryError;
+      } else if (error) {
+        throw error;
+      }
+    } 
+    // For signup flow, check if user exists first, then either use existing account or create new one
+    else {
+      console.log("Signup flow: Checking if user exists before creating account");
       
       // Check if user exists by attempting to sign in
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -89,8 +126,13 @@ export const handleDevLogin = async (
         password: devPassword
       });
       
+      // If sign in succeeds, user exists
+      if (!error) {
+        console.log("User already exists, using existing account");
+        // No need to do anything else, sign in was successful
+      }
       // If login fails, user likely doesn't exist, so create them
-      if (error) {
+      else {
         console.log("User doesn't exist, creating new account");
         
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
@@ -113,41 +155,6 @@ export const handleDevLogin = async (
         });
         
         if (signInError) throw signInError;
-      }
-    } 
-    // For signin flow, just attempt to sign in with the dev credentials
-    else {
-      console.log("Signin flow: Attempting to sign in with dev credentials");
-      
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: devPassword
-      });
-      
-      if (error) {
-        // If login fails during signin flow, create the account as a fallback
-        console.log("Sign in failed, creating account as fallback");
-        
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: email,
-          password: devPassword,
-          options: {
-            data: {
-              name: "Dev User",
-              phone: formData.phone || ""
-            }
-          }
-        });
-        
-        if (signUpError) throw signUpError;
-        
-        // Then sign in with the newly created account
-        const { error: retryError } = await supabase.auth.signInWithPassword({
-          email: email,
-          password: devPassword
-        });
-        
-        if (retryError) throw retryError;
       }
     }
     

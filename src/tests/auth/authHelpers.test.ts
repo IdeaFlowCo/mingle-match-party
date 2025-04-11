@@ -1,4 +1,3 @@
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handleTestLogin, handleDevLogin, generateMagicLink } from '@/components/auth/utils/authHelpers';
 import { toast } from '@/hooks/use-toast';
@@ -86,6 +85,80 @@ describe('Auth Helpers', () => {
       // Verify signup was called
       expect(mockSignUp).toHaveBeenCalled();
       expect(setIsLoading).toHaveBeenCalledWith(false);
+      expect(onLogin).toHaveBeenCalled();
+    });
+  });
+  
+  describe('handleDevLogin', () => {
+    it('should handle sign-in when user exists', async () => {
+      // Mock successful sign in
+      const mockSignIn = supabase.auth.signInWithPassword as any;
+      mockSignIn.mockResolvedValue({
+        data: { user: { id: 'existing-user-id' } },
+        error: null
+      });
+      
+      const setIsLoading = vi.fn();
+      const onLogin = vi.fn();
+      const onOpenChange = vi.fn();
+      
+      await handleDevLogin(
+        setIsLoading, 
+        'signin',
+        { phone: '1234567890' },
+        onLogin,
+        onOpenChange
+      );
+      
+      // Verify function behavior for successful sign in
+      expect(setIsLoading).toHaveBeenCalledWith(true);
+      expect(setIsLoading).toHaveBeenCalledWith(false);
+      expect(onLogin).toHaveBeenCalled();
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+      expect(toast).toHaveBeenCalled();
+      expect(mockSignIn).toHaveBeenCalledWith({
+        email: 'apppublishing+superconnectortest@proton.me',
+        password: 'devpassword123'
+      });
+      
+      // Should NOT have called signUp since user exists
+      expect(supabase.auth.signUp).not.toHaveBeenCalled();
+    });
+    
+    it('should create user first when signing in and user does not exist', async () => {
+      // Mock failed sign in, then successful sign up and sign in
+      const mockSignIn = supabase.auth.signInWithPassword as any;
+      mockSignIn
+        .mockResolvedValueOnce({
+          data: null,
+          error: { message: 'Invalid login credentials' }
+        })
+        .mockResolvedValueOnce({
+          data: { user: { id: 'new-user-id' } },
+          error: null
+        });
+      
+      const mockSignUp = supabase.auth.signUp as any;
+      mockSignUp.mockResolvedValue({
+        data: { user: { id: 'new-user-id' } },
+        error: null
+      });
+      
+      const setIsLoading = vi.fn();
+      const onLogin = vi.fn();
+      const onOpenChange = vi.fn();
+      
+      await handleDevLogin(
+        setIsLoading, 
+        'signin',
+        { phone: '1234567890' },
+        onLogin,
+        onOpenChange
+      );
+      
+      // Verify user was created and then signed in
+      expect(mockSignUp).toHaveBeenCalled();
+      expect(mockSignIn).toHaveBeenCalledTimes(2);
       expect(onLogin).toHaveBeenCalled();
     });
   });
