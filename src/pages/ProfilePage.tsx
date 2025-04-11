@@ -12,6 +12,16 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Save, User, Twitter, Phone, Pencil } from "lucide-react";
 
+// Define the profile data interface to fix TypeScript errors
+interface ProfileData {
+  name: string;
+  phone: string;
+  twitter: string;
+  bio: string;
+  lookingFor: string;
+  avatar_url: string;
+}
+
 const ProfilePage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -19,7 +29,7 @@ const ProfilePage = () => {
   const [user, setUser] = useState<any>(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [profileData, setProfileData] = useState({
+  const [profileData, setProfileData] = useState<ProfileData>({
     name: "",
     phone: "",
     twitter: "",

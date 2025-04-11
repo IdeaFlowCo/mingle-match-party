@@ -16,11 +16,19 @@ interface AuthModalProps {
   onLogin: () => void;
 }
 
+interface FormData {
+  phone: string;
+  name: string;
+  twitter: string;
+  bio: string;
+  lookingFor: string;
+}
+
 const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("signup");
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     phone: "",
     name: "",
     twitter: "",
@@ -67,7 +75,7 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
         title: "Signed in successfully",
         description: `Welcome back, ${data.name || "User"}!`
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Auth error:", error);
       toast({
         title: "Authentication error",
@@ -131,6 +139,7 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
           phone: formData.phone,
           bio: formData.bio,
           twitter: formData.twitter,
+          lookingFor: formData.lookingFor
         })
         .eq('id', authData.user?.id);
         
@@ -143,7 +152,7 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
         title: "Signed up successfully",
         description: "Welcome to Superconnector!"
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Auth error:", error);
       toast({
         title: "Authentication error",
@@ -190,6 +199,7 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
               bio: "I'm a test user interested in technology, entrepreneurship, and design.",
               twitter: "@testuser",
               phone: "555-123-4567",
+              lookingFor: "Connections in tech and startups",
               interests: ["Technology", "Startups", "Design", "Marketing"]
             });
             
@@ -214,7 +224,7 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
         title: "Test login successful",
         description: "You're signed in as a test user"
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Test login error:", error);
       toast({
         title: "Test login failed",

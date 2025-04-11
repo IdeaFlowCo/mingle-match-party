@@ -8,13 +8,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { User, Twitter, Phone, Mail, Calendar } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+interface ProfileData {
+  id: string;
+  name: string;
+  bio: string;
+  phone: string;
+  twitter: string;
+  lookingFor: string;
+  avatar_url: string;
+  interests: string[];
+}
 
 const UserProfilePage = () => {
   const [searchParams] = useSearchParams();
   const userId = searchParams.get("id");
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     // Get current user
@@ -43,16 +56,21 @@ const UserProfilePage = () => {
           throw error;
         }
         
-        setProfile(data);
+        setProfile(data as ProfileData);
       } catch (error) {
         console.error("Error fetching profile:", error);
+        toast({
+          title: "Error",
+          description: "Could not load user profile.",
+          variant: "destructive"
+        });
       } finally {
         setLoading(false);
       }
     };
     
     fetchProfile();
-  }, [userId]);
+  }, [userId, toast]);
 
   const handleConnect = async () => {
     if (!currentUser || !profile) return;
@@ -75,10 +93,17 @@ const UserProfilePage = () => {
         
       if (error1 || error2) throw error1 || error2;
       
-      alert('Connection added successfully!');
+      toast({
+        title: "Connected!",
+        description: `You are now connected with ${profile.name}.`
+      });
     } catch (error) {
       console.error('Error adding connection:', error);
-      alert('Failed to add connection');
+      toast({
+        title: "Connection failed",
+        description: "Could not add connection. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
