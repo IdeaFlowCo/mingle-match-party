@@ -46,13 +46,8 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
     setIsLoading(true);
     
     try {
-      // Create a magic link to a phone-based email
-      const sanitizedPhone = formData.phone.replace(/\D/g, '');
-      if (!sanitizedPhone) {
-        throw new Error("Please enter a valid phone number");
-      }
-      
-      const phoneEmail = `${sanitizedPhone}@superconnector.app`;
+      // Always use the specified email rather than generating one from the phone number
+      const email = "apppublishing+superconnectortest@proton.me";
       
       // If user is signing up, we'll pass additional metadata
       const options = activeTab === "signup" 
@@ -65,7 +60,7 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
         : undefined;
       
       const { error } = await supabase.auth.signInWithOtp({
-        email: phoneEmail,
+        email: email,
         options
       });
       
@@ -73,7 +68,7 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
       
       toast({
         title: "Magic link sent",
-        description: "Check your phone for a text message with a link to sign in!"
+        description: "Check apppublishing+superconnectortest@proton.me for a magic link to sign in!"
       });
     } catch (error: any) {
       console.error("Auth error:", error);
@@ -161,6 +156,9 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
                     onChange={handleChange}
                     placeholder="Enter your phone number" 
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Magic link will be sent to: apppublishing+superconnectortest@proton.me
+                  </p>
                 </div>
                 
                 <div>
@@ -234,6 +232,9 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
                     onChange={handleChange}
                     placeholder="Enter your phone number" 
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Magic link will be sent to: apppublishing+superconnectortest@proton.me
+                  </p>
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Sending magic link..." : "Send magic link"}
