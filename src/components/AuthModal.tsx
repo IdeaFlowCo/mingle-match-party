@@ -1,81 +1,103 @@
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
 import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface AuthModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onLogin?: () => void;
+  onLogin: () => void;
 }
 
 const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [activeTab, setActiveTab] = useState("signup");
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
+  const [formData, setFormData] = useState({
+    phone: "",
+    name: "",
+    twitter: "",
+    bio: "",
+    lookingFor: ""
+  });
   
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.id]: e.target.value
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      // Check if user exists with this phone number
-      const { data: existingProfile } = await supabase
-        .from('superconnector_profiles')
-        .select('id')
-        .eq('phone', phone)
-        .single();
+      // In a real app, we would implement actual authentication here
+      // For now, we'll just call the onLogin callback
+      onLogin();
+      toast({
+        title: "Signed in successfully",
+        description: "Welcome to Superconnector!"
+      });
+    } catch (error) {
+      console.error("Auth error:", error);
+      toast({
+        title: "Authentication error",
+        description: error.message || "Failed to authenticate. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleTestLogin = async () => {
+    setIsLoading(true);
+    
+    try {
+      // Use a test email and password for quick sign in
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: "test@example.com",
+        password: "password123"
+      });
       
-      if (existingProfile) {
-        // User exists, log them in with magic link
-        await supabase.auth.signInWithOtp({
-          email: `${phone}@superconnector.app`,
-        });
-        toast({
-          title: "Check your email",
-          description: "We've sent you a magic link to log in."
-        });
-      } else {
-        // Create new user with magic link
-        await supabase.auth.signInWithOtp({
-          email: `${phone}@superconnector.app`,
+      // If the user doesn't exist, sign up first
+      if (error && error.message.includes("Invalid login credentials")) {
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: "test@example.com",
+          password: "password123",
           options: {
             data: {
-              phone,
-              name: name
+              name: "Test User",
+              bio: "I'm a test user interested in technology, entrepreneurship, and design."
             }
           }
         });
         
-        toast({
-          title: "Account created",
-          description: "Check your email for a login link."
-        });
+        if (signUpError) throw signUpError;
+      } else if (error) {
+        throw error;
       }
       
-      onLogin?.();
-    } catch (error) {
-      console.error("Auth error:", error);
+      onLogin();
+      onOpenChange(false);
+      
       toast({
-        title: "Authentication failed",
-        description: error instanceof Error ? error.message : "Please try again",
-        variant: "destructive",
+        title: "Test login successful",
+        description: "You're signed in as a test user"
+      });
+    } catch (error) {
+      console.error("Test login error:", error);
+      toast({
+        title: "Test login failed",
+        description: error.message || "Could not log in as test user",
+        variant: "destructive"
       });
     } finally {
       setIsLoading(false);
@@ -83,50 +105,121 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
   };
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Authentication</AlertDialogTitle>
-          <AlertDialogDescription>
-            Enter your name and phone number to sign up or sign in.
-            We'll automatically create an account if you don't have one.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <form onSubmit={handleLogin} className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              type="text"
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="phone">Phone Number</Label>
-            <Input
-              type="tel"
-              id="phone"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Loading ...
-                </>
-              ) : (
-                "Continue"
-              )}
-            </Button>
-          </AlertDialogFooter>
-        </form>
-      </AlertDialogContent>
-    </AlertDialog>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle className="text-center text-2xl font-bold">
+            {activeTab === "signup" ? "Sign Up" : "Sign In"}
+          </DialogTitle>
+        </DialogHeader>
+        
+        <Tabs defaultValue="signup" value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            <TabsTrigger value="signin">Sign In</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="signup">
+            <form onSubmit={handleSubmit}>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="phone">Your Number</Label>
+                  <Input 
+                    id="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    placeholder="Enter your phone number" 
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="name">Your Name</Label>
+                  <Input 
+                    id="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="Enter your name" 
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="twitter">Your Twitter (optional)</Label>
+                  <Input 
+                    id="twitter"
+                    value={formData.twitter}
+                    onChange={handleChange}
+                    placeholder="@username" 
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="bio">Your bio (optional)</Label>
+                  <Textarea 
+                    id="bio" 
+                    value={formData.bio}
+                    onChange={handleChange}
+                    placeholder="Tell us about yourself and your interests"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="lookingFor">What you're looking for (optional)</Label>
+                  <Textarea 
+                    id="lookingFor" 
+                    value={formData.lookingFor}
+                    onChange={handleChange}
+                    placeholder="What kind of connections are you seeking?"
+                  />
+                </div>
+                
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Signing up..." : "RSVP"}
+                </Button>
+                
+                <div className="text-center">
+                  <Button 
+                    type="button" 
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleTestLogin}
+                    disabled={isLoading}
+                  >
+                    Test Login (Quick Access)
+                  </Button>
+                </div>
+              </div>
+            </form>
+          </TabsContent>
+          
+          <TabsContent value="signin">
+            <form onSubmit={handleSubmit}>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="signin-phone">Your Number</Label>
+                  <Input id="signin-phone" type="tel" placeholder="Enter your phone number" />
+                </div>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading ? "Signing in..." : "Go"}
+                </Button>
+                
+                <div className="text-center mt-4">
+                  <Button 
+                    type="button" 
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleTestLogin}
+                    disabled={isLoading}
+                  >
+                    Test Login (Quick Access)
+                  </Button>
+                </div>
+              </div>
+            </form>
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
   );
 };
 

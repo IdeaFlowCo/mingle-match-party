@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
@@ -12,52 +13,45 @@ const Navbar = () => {
   const [profile, setProfile] = useState<any>(null);
   
   useEffect(() => {
-    // Set up listener for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      const currentUser = session?.user || null;
-      setUser(currentUser);
-      
-      if (currentUser) {
-        // Fetch profile data for the user
-        fetchProfile(currentUser.id);
-      } else {
-        setProfile(null);
-      }
-    });
-    
-    // Check if user is logged in on load
+    // Check if user is logged in
     const getSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      const currentUser = session?.user || null;
-      setUser(currentUser);
+      setUser(session?.user || null);
       
-      if (currentUser) {
-        // Fetch profile data for the user
-        fetchProfile(currentUser.id);
+      if (session?.user) {
+        const { data } = await supabase
+          .from('superconnector_profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+          
+        setProfile(data);
       }
     };
     
     getSession();
     
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      setUser(session?.user || null);
+      
+      if (session?.user) {
+        const { data } = await supabase
+          .from('superconnector_profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+          
+        setProfile(data);
+      } else {
+        setProfile(null);
+      }
+    });
+    
     return () => {
       subscription.unsubscribe();
     };
   }, []);
-  
-  const fetchProfile = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('superconnector_profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      
-      if (error) throw error;
-      setProfile(data);
-    } catch (error) {
-      console.error("Error fetching profile:", error);
-    }
-  };
   
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -77,14 +71,9 @@ const Navbar = () => {
 
   return (
     <nav className="w-full py-4 px-6 md:px-12 flex items-center justify-between border-b">
-      <div className="flex items-center gap-4">
-        <Link to="/" className="text-xl font-semibold">
-          Superconnector
-        </Link>
-        <Button variant="ghost" size="sm" asChild>
-          <Link to="/users">Users</Link>
-        </Button>
-      </div>
+      <Link to="/" className="text-xl font-semibold">
+        Superconnector
+      </Link>
       <div className="flex items-center gap-4">
         <Button
           variant="outline"
@@ -104,7 +93,7 @@ const Navbar = () => {
             </Button>
             
             <Button variant="ghost" className="p-0" asChild>
-              <Link to="/profile">
+              <Link to={profile ? `/user?id=${user.id}` : "/profile"}>
                 <Avatar className="h-8 w-8">
                   {profile?.avatar_url ? (
                     <AvatarImage src={profile.avatar_url} alt={profile?.name} />
