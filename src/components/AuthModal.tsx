@@ -46,8 +46,11 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
     setIsLoading(true);
     
     try {
+      console.log("Starting magic link authentication process...");
+      
       // Always use the specified email rather than generating one from the phone number
       const email = "apppublishing+superconnectortest@proton.me";
+      console.log(`Using email address: ${email}`);
       
       // If user is signing up, we'll pass additional metadata
       const options = activeTab === "signup" 
@@ -59,19 +62,25 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
           }
         : undefined;
       
-      const { error } = await supabase.auth.signInWithOtp({
+      console.log(`Auth mode: ${activeTab}`, options ? "with user data" : "without user data");
+      console.log("Calling supabase.auth.signInWithOtp...");
+      
+      const { data, error } = await supabase.auth.signInWithOtp({
         email: email,
         options
       });
       
+      console.log("OTP response received:", data ? "Success" : "No data", error ? `Error: ${error.message}` : "No errors");
+      
       if (error) throw error;
       
+      console.log("Magic link sent successfully to", email);
       toast({
         title: "Magic link sent",
         description: "Check apppublishing+superconnectortest@proton.me for a magic link to sign in!"
       });
     } catch (error: any) {
-      console.error("Auth error:", error);
+      console.error("Auth error details:", error);
       toast({
         title: "Authentication error",
         description: error.message || "Failed to authenticate. Please try again.",
@@ -79,6 +88,7 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
       });
     } finally {
       setIsLoading(false);
+      console.log("Authentication process completed");
     }
   };
   
@@ -86,14 +96,20 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
     setIsLoading(true);
     
     try {
+      console.log("Starting test login process...");
+      
       // Use a test email and password for quick sign in
+      console.log("Attempting to sign in with test credentials...");
       const { data, error } = await supabase.auth.signInWithPassword({
         email: "test@example.com",
         password: "password123"
       });
       
+      console.log("Sign in response:", data ? "Success" : "No data", error ? `Error: ${error.message}` : "No errors");
+      
       // If the user doesn't exist, sign up first
       if (error && error.message.includes("Invalid login credentials")) {
+        console.log("Test user doesn't exist, creating new test user...");
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email: "test@example.com",
           password: "password123",
@@ -105,11 +121,14 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
           }
         });
         
+        console.log("Sign up response:", signUpData ? "Success" : "No data", signUpError ? `Error: ${signUpError.message}` : "No errors");
+        
         if (signUpError) throw signUpError;
       } else if (error) {
         throw error;
       }
       
+      console.log("Test login successful, triggering onLogin callback");
       onLogin();
       onOpenChange(false);
       
@@ -118,7 +137,7 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
         description: "You're signed in as a test user"
       });
     } catch (error: any) {
-      console.error("Test login error:", error);
+      console.error("Test login error details:", error);
       toast({
         title: "Test login failed",
         description: error.message || "Could not log in as test user",
@@ -126,6 +145,7 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
       });
     } finally {
       setIsLoading(false);
+      console.log("Test login process completed");
     }
   };
 
