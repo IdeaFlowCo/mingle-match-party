@@ -52,13 +52,13 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
     try {
       // In a real app with phone authentication, we would implement proper phone auth
       // For now, we'll simulate by checking if a user with this phone exists
-      const { data, error } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from('superconnector_profiles')
-        .select('*')
+        .select('id')
         .eq('phone', signinPhone)
-        .single();
+        .maybeSingle();
       
-      if (error) {
+      if (profileError || !profileData) {
         throw new Error("No account found with this phone number. Please sign up instead.");
       }
       
@@ -74,7 +74,7 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
       onOpenChange(false);
       toast({
         title: "Signed in successfully",
-        description: `Welcome back, ${data.name || "User"}!`
+        description: "Welcome back!"
       });
     } catch (error: any) {
       console.error("Auth error:", error);
@@ -94,11 +94,15 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
     
     try {
       // First check if a user with this phone already exists
-      const { data: existingUser } = await supabase
+      const { data: existingUser, error: queryError } = await supabase
         .from('superconnector_profiles')
         .select('*')
         .eq('phone', formData.phone)
         .maybeSingle();
+      
+      if (queryError) {
+        throw new Error("Error checking for existing account: " + queryError.message);
+      }
       
       if (existingUser) {
         // User exists, sign them in instead
@@ -135,14 +139,14 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
       // Store additional profile data
       const { error: profileError } = await supabase
         .from('superconnector_profiles')
-        .update({
+        .insert({
+          id: authData.user?.id,
           name: formData.name,
           phone: formData.phone,
           bio: formData.bio,
           twitter: formData.twitter,
           lookingFor: formData.lookingFor
         })
-        .eq('id', authData.user?.id);
         
       if (profileError) throw profileError;
       
