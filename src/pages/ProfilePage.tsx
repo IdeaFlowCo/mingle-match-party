@@ -12,14 +12,19 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Save, User, Twitter, Phone, Pencil } from "lucide-react";
 
-// Define the profile data interface to fix TypeScript errors
-interface ProfileData {
+// Define extended profile data interface with the additional fields
+interface ExtendedProfileData {
   name: string;
   phone: string;
   twitter: string;
   bio: string;
   lookingFor: string;
   avatar_url: string;
+  // Add other fields that might be in the database
+  id?: string;
+  created_at?: string;
+  updated_at?: string;
+  interests?: string[];
 }
 
 const ProfilePage = () => {
@@ -29,7 +34,7 @@ const ProfilePage = () => {
   const [user, setUser] = useState<any>(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [profileData, setProfileData] = useState<ProfileData>({
+  const [profileData, setProfileData] = useState<ExtendedProfileData>({
     name: "",
     phone: "",
     twitter: "",
@@ -70,7 +75,11 @@ const ProfilePage = () => {
           twitter: data.twitter || "",
           bio: data.bio || "",
           lookingFor: data.lookingFor || "",
-          avatar_url: data.avatar_url || ""
+          avatar_url: data.avatar_url || "",
+          interests: data.interests,
+          id: data.id,
+          created_at: data.created_at,
+          updated_at: data.updated_at
         });
       }
     } catch (error) {

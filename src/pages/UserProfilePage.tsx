@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Twitter, Phone, Mail, Calendar } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { User, Twitter, Phone, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+// Create an extended interface that explicitly includes all fields we need
 interface ProfileData {
   id: string;
   name: string;
@@ -19,6 +20,9 @@ interface ProfileData {
   lookingFor: string;
   avatar_url: string;
   interests: string[];
+  // Include other potential fields from the DB
+  created_at?: string;
+  updated_at?: string;
 }
 
 const UserProfilePage = () => {
@@ -56,7 +60,19 @@ const UserProfilePage = () => {
           throw error;
         }
         
-        setProfile(data as ProfileData);
+        // Make sure we assign all the necessary properties
+        setProfile({
+          id: data.id,
+          name: data.name || '',
+          bio: data.bio || '',
+          phone: data.phone || '',
+          twitter: data.twitter || '',
+          lookingFor: data.lookingFor || '',
+          avatar_url: data.avatar_url || '',
+          interests: data.interests || [],
+          created_at: data.created_at,
+          updated_at: data.updated_at
+        });
       } catch (error) {
         console.error("Error fetching profile:", error);
         toast({
