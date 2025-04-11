@@ -42,40 +42,40 @@ const EventDetails = ({
       </div>
       
       <div className="mb-10">
-        <p className="text-sm font-medium mb-2">RSVP to this event:</p>
+        <h3 className="text-lg font-medium mb-3">Will you attend this event?</h3>
         
         {isLoggedIn ? (
-          <ToggleGroup type="single" value={userRsvpStatus || undefined} className="flex gap-2">
-            <ToggleGroupItem 
-              value="going" 
-              onClick={() => onRsvpClick('going')}
-              className={`flex items-center gap-1 ${userRsvpStatus === 'going' ? 'bg-green-100' : ''}`}
+          <div className="flex items-center gap-3">
+            <Button 
               variant="outline"
+              size="sm"
+              className={`flex items-center gap-1 ${userRsvpStatus === 'going' ? 'bg-green-100 border-green-300 text-green-700' : ''}`}
+              onClick={() => onRsvpClick('going')}
             >
               <Check className="h-4 w-4" />
               Yes
-            </ToggleGroupItem>
+            </Button>
             
-            <ToggleGroupItem 
-              value="maybe" 
-              onClick={() => onRsvpClick('maybe')}
-              className={`flex items-center gap-1 ${userRsvpStatus === 'maybe' ? 'bg-yellow-100' : ''}`}
+            <Button 
               variant="outline"
+              size="sm"
+              className={`flex items-center gap-1 ${userRsvpStatus === 'maybe' ? 'bg-yellow-100 border-yellow-300 text-yellow-700' : ''}`}
+              onClick={() => onRsvpClick('maybe')}
             >
               <HelpCircle className="h-4 w-4" />
               Maybe
-            </ToggleGroupItem>
+            </Button>
             
-            <ToggleGroupItem 
-              value="not_going" 
-              onClick={() => onRsvpClick('not_going')}
-              className={`flex items-center gap-1 ${userRsvpStatus === 'not_going' ? 'bg-red-100' : ''}`}
+            <Button 
               variant="outline"
+              size="sm"
+              className={`flex items-center gap-1 ${userRsvpStatus === 'not_going' ? 'bg-red-100 border-red-300 text-red-700' : ''}`}
+              onClick={() => onRsvpClick('not_going')}
             >
               <X className="h-4 w-4" />
               No
-            </ToggleGroupItem>
-          </ToggleGroup>
+            </Button>
+          </div>
         ) : (
           <div className="text-sm text-gray-500">
             Please sign in to RSVP for this event.

@@ -1,19 +1,22 @@
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import EventDetails from "@/components/EventDetails";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 
 const EventPage = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const eventId = searchParams.get("id");
   const { toast } = useToast();
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [userRsvpStatus, setUserRsvpStatus] = useState<string | null>(null);
@@ -50,10 +53,12 @@ const EventPage = () => {
     const fetchEvent = async () => {
       if (!eventId) {
         setLoading(false);
+        setLoadError(true);
         return;
       }
       
       try {
+        console.log("Fetching event with id:", eventId);
         const { data, error } = await supabase
           .from('superconnector_events')
           .select('*, creator:creator_id(name)')
@@ -61,12 +66,15 @@ const EventPage = () => {
           .single();
           
         if (error) {
+          console.error("Error in supabase query:", error);
           throw error;
         }
         
+        console.log("Fetched event data:", data);
         setEvent(data);
       } catch (error) {
         console.error("Error fetching event:", error);
+        setLoadError(true);
         toast({
           title: "Error fetching event details",
           description: "Could not load event details. Please try again.",
@@ -152,6 +160,24 @@ const EventPage = () => {
       return "Date and time to be announced";
     }
   };
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        
+        <main className="flex-1 px-6 py-8 flex flex-col items-center justify-center">
+          <div className="text-center py-12 max-w-md">
+            <h2 className="text-2xl font-bold mb-2">Event not found</h2>
+            <p className="text-gray-600 mb-6">This event doesn't exist or has been removed.</p>
+            <Button onClick={() => navigate('/')}>
+              Return to Homepage
+            </Button>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">

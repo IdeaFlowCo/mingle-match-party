@@ -74,14 +74,18 @@ const CreateEventPage = () => {
         description: "Your event has been successfully created."
       });
       
-      // Navigate to the event page
-      navigate(`/event?id=${data.id}`);
+      console.log("Created event data:", data);
+      
+      // Navigate to the event page with a small delay to ensure data is properly saved
+      setTimeout(() => {
+        navigate(`/event?id=${data.id}`);
+      }, 300);
       
     } catch (error) {
       console.error("Error creating event:", error);
       toast({
         title: "Error creating event",
-        description: error.message || "Something went wrong. Please try again.",
+        description: "Something went wrong. Please try again.",
         variant: "destructive"
       });
     } finally {
