@@ -77,23 +77,25 @@ export const handleDevLogin = async (
     
     // Create a direct session for the user
     const email = "apppublishing+superconnectortest@proton.me";
+    const devPassword = "devpassword123"; // Consistent password for dev login
     
-    // First check if the user exists
-    const { data: userData, error: userError } = await supabase.auth.signInWithOtp({
-      email: email,
-      options: {
-        shouldCreateUser: false
-      }
-    });
-    
-    if (userError) {
-      console.log("User might not exist, attempting to create account first");
+    // For signup flow, create the user first if they don't exist
+    if (activeTab === "signup") {
+      console.log("Signup flow: Creating user if needed first");
       
-      // Create user if needed (for signup flow)
-      if (activeTab === "signup") {
-        const { error: signUpError } = await supabase.auth.signUp({
+      // Check if user exists by attempting to sign in
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: devPassword
+      });
+      
+      // If login fails, user likely doesn't exist, so create them
+      if (error) {
+        console.log("User doesn't exist, creating new account");
+        
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email: email,
-          password: "devpassword123", // Temporary password for dev environment
+          password: devPassword,
           options: {
             data: {
               name: formData.name || "Dev User",
@@ -103,16 +105,51 @@ export const handleDevLogin = async (
         });
         
         if (signUpError) throw signUpError;
+        
+        // After creating the user, we need to sign them in
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: email,
+          password: devPassword
+        });
+        
+        if (signInError) throw signInError;
+      }
+    } 
+    // For signin flow, just attempt to sign in with the dev credentials
+    else {
+      console.log("Signin flow: Attempting to sign in with dev credentials");
+      
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: devPassword
+      });
+      
+      if (error) {
+        // If login fails during signin flow, create the account as a fallback
+        console.log("Sign in failed, creating account as fallback");
+        
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: email,
+          password: devPassword,
+          options: {
+            data: {
+              name: "Dev User",
+              phone: formData.phone || ""
+            }
+          }
+        });
+        
+        if (signUpError) throw signUpError;
+        
+        // Then sign in with the newly created account
+        const { error: retryError } = await supabase.auth.signInWithPassword({
+          email: email,
+          password: devPassword
+        });
+        
+        if (retryError) throw retryError;
       }
     }
-    
-    // Now manually create a session by forcing admin login (this simulates clicking the magic link)
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: email,
-      password: "devpassword123" // Must match the password used above
-    });
-    
-    if (error) throw error;
     
     console.log("Dev login successful");
     onLogin();
