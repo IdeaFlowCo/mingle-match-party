@@ -91,14 +91,7 @@ describe('Auth Helpers', () => {
   });
   
   describe('generateMagicLink', () => {
-    it('should generate a magic link for an existing user', async () => {
-      // Mock successful login (user exists)
-      const mockSignIn = supabase.auth.signInWithPassword as any;
-      mockSignIn.mockResolvedValue({
-        data: { user: { id: 'existing-user-id' } },
-        error: null
-      });
-      
+    it('should generate a magic link without checking user existence first', async () => {
       // Mock OTP generation
       const mockSignInWithOtp = supabase.auth.signInWithOtp as any;
       mockSignInWithOtp.mockResolvedValue({
@@ -112,41 +105,26 @@ describe('Auth Helpers', () => {
       expect(link).toContain('http://localhost:8080/auth/confirm');
       expect(mockSignInWithOtp).toHaveBeenCalledWith({
         email: 'apppublishing+superconnectortest@proton.me',
-        options: { shouldCreateUser: false }
+        options: { shouldCreateUser: true }
       });
+      
+      // Should NOT have called signInWithPassword
+      expect(supabase.auth.signInWithPassword).not.toHaveBeenCalled();
     });
     
-    it('should create a user if not exists before generating magic link', async () => {
-      // Mock failed login (user doesn't exist)
-      const mockSignIn = supabase.auth.signInWithPassword as any;
-      mockSignIn.mockResolvedValueOnce({
-        data: null,
-        error: { message: 'Invalid login credentials' }
-      }).mockResolvedValueOnce({
-        data: { user: { id: 'new-user-id' } },
-        error: null
-      });
-      
-      // Mock signup
-      const mockSignUp = supabase.auth.signUp as any;
-      mockSignUp.mockResolvedValue({
-        data: { user: { id: 'new-user-id' } },
-        error: null
-      });
-      
-      // Mock OTP generation
+    it('should handle errors when generating magic link', async () => {
+      // Mock OTP generation failure
       const mockSignInWithOtp = supabase.auth.signInWithOtp as any;
       mockSignInWithOtp.mockResolvedValue({
-        data: {},
-        error: null
+        data: null,
+        error: { message: 'Failed to send email' }
       });
       
       const link = await generateMagicLink();
       
-      // Should return a link and have called signup
-      expect(link).toContain('http://localhost:8080/auth/confirm');
-      expect(mockSignUp).toHaveBeenCalled();
-      expect(mockSignInWithOtp).toHaveBeenCalled();
+      // Should return empty string when error occurs
+      expect(link).toBe('');
+      expect(toast).toHaveBeenCalled();
     });
   });
   

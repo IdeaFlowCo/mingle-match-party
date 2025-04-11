@@ -1,5 +1,5 @@
 
 // Test setup file
-// This file is executed before running tests
+import '@testing-library/jest-dom';
 
 // Global mocks and setup can be added here

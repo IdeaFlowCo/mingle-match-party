@@ -1,4 +1,3 @@
-
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -177,48 +176,20 @@ export const generateMagicLink = async (): Promise<string> => {
   
   try {
     const email = "apppublishing+superconnectortest@proton.me";
-    const password = "devpassword123";
     
-    // Check if the user already exists by signing in
-    let { data, error } = await supabase.auth.signInWithPassword({
-      email: email,
-      password: password
-    });
+    // For a magic link, we don't need to check if the user exists first
+    // We'll let signInWithOtp handle that automatically - it works for both
+    // existing users (sign in) and new users (sign up)
+    console.log("Generating magic link via OTP for:", email);
     
-    // If the user doesn't exist, create them first
-    if (error && error.message.includes("Invalid login credentials")) {
-      console.log("User doesn't exist yet. Creating new user...");
-      
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: email,
-        password: password,
-        options: {
-          data: {
-            name: "Dev User"
-          }
-        }
-      });
-      
-      if (signUpError) throw signUpError;
-      
-      // Try logging in again after creating the user
-      const { error: retryError } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password
-      });
-      
-      if (retryError) throw retryError;
-    } else if (error) {
-      throw error;
-    }
-    
-    // Generate a magic link URL - user exists at this point
-    // Instead of using admin.generateLink which requires additional permissions,
-    // use signInWithOtp to get a login link
+    // Generate a magic link URL - signInWithOtp works for both new and existing users
     const { data: otpData, error: otpError } = await supabase.auth.signInWithOtp({
       email: email,
       options: {
-        shouldCreateUser: false // Don't try to create a new user
+        // Set to true to create user if they don't exist (for signup tab)
+        // Set to false to only allow existing users (for signin tab)
+        // Since we're using the same function for both, we'll allow user creation
+        shouldCreateUser: true
       }
     });
     
