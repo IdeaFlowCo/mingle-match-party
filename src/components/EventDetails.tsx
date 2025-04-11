@@ -1,7 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, Clock, Check, X, HelpCircle } from "lucide-react";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Calendar, MapPin, Clock, Check, X, HelpCircle, User } from "lucide-react";
 
 interface EventDetailsProps {
   title: string;
@@ -11,6 +10,7 @@ interface EventDetailsProps {
   isLoggedIn: boolean;
   userRsvpStatus: string | null;
   onRsvpClick: (status: 'going' | 'maybe' | 'not_going') => void;
+  creatorName?: string | null;
 }
 
 const EventDetails = ({
@@ -21,6 +21,7 @@ const EventDetails = ({
   isLoggedIn,
   userRsvpStatus,
   onRsvpClick,
+  creatorName
 }: EventDetailsProps) => {
   return (
     <div className="w-full max-w-3xl mx-auto mb-8">
@@ -39,6 +40,13 @@ const EventDetails = ({
           <Clock className="h-5 w-5 mr-2" />
           <span>{dateTime}</span>
         </div>
+        
+        {creatorName && (
+          <div className="flex items-center text-gray-600">
+            <User className="h-5 w-5 mr-2" />
+            <span>Created by {creatorName}</span>
+          </div>
+        )}
       </div>
       
       <div className="mb-10">

@@ -20,6 +20,7 @@ const EventPage = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [userRsvpStatus, setUserRsvpStatus] = useState<string | null>(null);
+  const [creator, setCreator] = useState<any>(null);
 
   useEffect(() => {
     // Check if user is logged in
@@ -59,9 +60,11 @@ const EventPage = () => {
       
       try {
         console.log("Fetching event with id:", eventId);
+        
+        // Fetch the event without trying to join with creator
         const { data, error } = await supabase
           .from('superconnector_events')
-          .select('*, creator:creator_id(name)')
+          .select('*')
           .eq('id', eventId)
           .single();
           
@@ -72,6 +75,19 @@ const EventPage = () => {
         
         console.log("Fetched event data:", data);
         setEvent(data);
+        
+        // Separately fetch the creator's profile if we have creator_id
+        if (data && data.creator_id) {
+          const { data: creatorData, error: creatorError } = await supabase
+            .from('superconnector_profiles')
+            .select('name')
+            .eq('id', data.creator_id)
+            .single();
+            
+          if (!creatorError && creatorData) {
+            setCreator(creatorData);
+          }
+        }
       } catch (error) {
         console.error("Error fetching event:", error);
         setLoadError(true);
@@ -200,6 +216,7 @@ const EventPage = () => {
             isLoggedIn={isLoggedIn}
             userRsvpStatus={userRsvpStatus}
             onRsvpClick={handleRsvp}
+            creatorName={creator?.name}
           />
         ) : (
           <div className="text-center py-12">
