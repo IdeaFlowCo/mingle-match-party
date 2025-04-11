@@ -57,8 +57,12 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
         });
       } else {
         // Create new user with magic link
+        // For new users, we need a temporary password for the initial signup
+        const tempPassword = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+        
         const { error: authError } = await supabase.auth.signUp({
           email: `${phone}@superconnector.app`,
+          password: tempPassword, // Required parameter for signUp
           options: {
             data: {
               phone,
