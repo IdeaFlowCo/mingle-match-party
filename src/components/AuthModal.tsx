@@ -24,10 +24,6 @@ interface AuthModalProps {
   onLogin?: () => void;
 }
 
-interface ExistingProfileResult {
-  id: string;
-}
-
 const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -44,7 +40,7 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
         .from('superconnector_profiles')
         .select('id')
         .eq('phone', phone)
-        .maybeSingle<ExistingProfileResult>();
+        .single();
       
       if (existingProfile) {
         // User exists, log them in with magic link
@@ -57,12 +53,8 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
         });
       } else {
         // Create new user with magic link
-        // For new users, we need a temporary password for the initial signup
-        const tempPassword = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
-        
-        const { error: authError } = await supabase.auth.signUp({
+        await supabase.auth.signInWithOtp({
           email: `${phone}@superconnector.app`,
-          password: tempPassword, // Required parameter for signUp
           options: {
             data: {
               phone,
@@ -70,8 +62,6 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
             }
           }
         });
-
-        if (authError) throw authError;
         
         toast({
           title: "Account created",
