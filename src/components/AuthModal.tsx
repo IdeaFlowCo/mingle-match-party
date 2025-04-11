@@ -15,10 +15,18 @@ interface AuthModalProps {
   onLogin: () => void;
 }
 
+interface FormData {
+  phone: string;
+  name: string;
+  twitter: string;
+  bio: string;
+  lookingFor: string;
+}
+
 const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
   const [activeTab, setActiveTab] = useState("signup");
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     phone: "",
     name: "",
     twitter: "",
@@ -38,14 +46,28 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
     setIsLoading(true);
     
     try {
-      // In a real app, we would implement actual authentication here
-      // For now, we'll just call the onLogin callback
+      // Create a magic link to a phone-based email
+      const phoneEmail = `${formData.phone.replace(/\D/g, '')}@superconnector.app`;
+      
+      const { error } = await supabase.auth.signInWithOtp({
+        email: phoneEmail,
+        options: {
+          // Add user metadata if they're signing up for the first time
+          data: {
+            name: formData.name,
+            phone: formData.phone
+          }
+        }
+      });
+      
+      if (error) throw error;
+      
       onLogin();
       toast({
-        title: "Signed in successfully",
-        description: "Welcome to Superconnector!"
+        title: "Magic link sent",
+        description: "Check your phone for a link to sign in!"
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Auth error:", error);
       toast({
         title: "Authentication error",
@@ -92,7 +114,7 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
         title: "Test login successful",
         description: "You're signed in as a test user"
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Test login error:", error);
       toast({
         title: "Test login failed",
@@ -197,7 +219,13 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="signin-phone">Your Number</Label>
-                  <Input id="signin-phone" type="tel" placeholder="Enter your phone number" />
+                  <Input 
+                    id="phone"
+                    type="tel" 
+                    value={formData.phone}
+                    onChange={handleChange}
+                    placeholder="Enter your phone number" 
+                  />
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Signing in..." : "Go"}

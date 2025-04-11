@@ -1,21 +1,52 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Profile } from "@/types/profile";
 
 const ProfilePage = () => {
   const { toast } = useToast();
-  const [profileData, setProfileData] = useState({
+  const [profileData, setProfileData] = useState<Profile>({
+    id: "",
     name: "John Doe",
     phone: "555-123-4567",
     twitter: "@johndoe",
     bio: "Excited about Tai chi, surfing, connecting people. From San Diego",
-    lookingFor: "Looking for Full stack engineer"
+    lookingFor: "Looking for Full stack engineer",
+    avatar_url: "",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    interests: []
   });
+  
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
+        const { data } = await supabase
+          .from('superconnector_profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+          
+        if (data) {
+          // Merge the fetched profile with our default values to ensure all fields exist
+          setProfileData({
+            ...profileData,
+            ...data,
+          });
+        }
+      }
+    };
+    
+    fetchProfile();
+  }, []);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setProfileData({
@@ -24,13 +55,38 @@ const ProfilePage = () => {
     });
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Save profile logic would go here
-    toast({
-      title: "Profile updated",
-      description: "Your profile has been successfully updated."
-    });
+    
+    // Save profile logic
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session?.user) {
+      const { error } = await supabase
+        .from('superconnector_profiles')
+        .upsert({
+          id: session.user.id,
+          name: profileData.name,
+          phone: profileData.phone,
+          twitter: profileData.twitter,
+          bio: profileData.bio,
+          lookingFor: profileData.lookingFor,
+          updated_at: new Date().toISOString()
+        });
+        
+      if (error) {
+        toast({
+          title: "Error updating profile",
+          description: error.message,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Profile updated",
+          description: "Your profile has been successfully updated."
+        });
+      }
+    }
   };
   
   return (
@@ -57,7 +113,7 @@ const ProfilePage = () => {
               <Input
                 id="phone"
                 name="phone"
-                value={profileData.phone}
+                value={profileData.phone || ''}
                 onChange={handleChange}
               />
             </div>
@@ -67,7 +123,7 @@ const ProfilePage = () => {
               <Input
                 id="twitter"
                 name="twitter"
-                value={profileData.twitter}
+                value={profileData.twitter || ''}
                 onChange={handleChange}
               />
             </div>
@@ -90,7 +146,7 @@ const ProfilePage = () => {
                 id="lookingFor"
                 name="lookingFor"
                 rows={4}
-                value={profileData.lookingFor}
+                value={profileData.lookingFor || ''}
                 onChange={handleChange}
                 placeholder="What connections are you hoping to make?"
               />
