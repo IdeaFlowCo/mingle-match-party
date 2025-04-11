@@ -30,6 +30,19 @@ describe('Auth Helpers', () => {
       },
       writable: true
     });
+    
+    // Mock localStorage
+    Object.defineProperty(window, 'localStorage', {
+      value: {
+        getItem: vi.fn(),
+        setItem: vi.fn(),
+        removeItem: vi.fn()
+      },
+      writable: true
+    });
+    
+    // Mock window.dispatchEvent
+    window.dispatchEvent = vi.fn();
   });
   
   describe('handleTestLogin', () => {
@@ -90,14 +103,7 @@ describe('Auth Helpers', () => {
   });
   
   describe('handleDevLogin', () => {
-    it('should handle sign-in when user exists', async () => {
-      // Mock successful sign in
-      const mockSignIn = supabase.auth.signInWithPassword as any;
-      mockSignIn.mockResolvedValue({
-        data: { user: { id: 'existing-user-id' } },
-        error: null
-      });
-      
+    it('should create a mock session without calling Supabase', async () => {
       const setIsLoading = vi.fn();
       const onLogin = vi.fn();
       const onOpenChange = vi.fn();
@@ -110,96 +116,54 @@ describe('Auth Helpers', () => {
         onOpenChange
       );
       
-      // Verify function behavior for successful sign in
+      // Verify we didn't call Supabase auth methods
+      expect(supabase.auth.signInWithPassword).not.toHaveBeenCalled();
+      expect(supabase.auth.signUp).not.toHaveBeenCalled();
+      
+      // Verify we set the mock session in localStorage
+      expect(localStorage.setItem).toHaveBeenCalledWith(
+        'sb-session',
+        expect.any(String)
+      );
+      
+      // Verify we dispatched the auth state change event
+      expect(window.dispatchEvent).toHaveBeenCalledWith(expect.any(Event));
+      
+      // Verify loading state and callbacks
       expect(setIsLoading).toHaveBeenCalledWith(true);
       expect(setIsLoading).toHaveBeenCalledWith(false);
       expect(onLogin).toHaveBeenCalled();
       expect(onOpenChange).toHaveBeenCalledWith(false);
-      expect(toast).toHaveBeenCalled();
-      expect(mockSignIn).toHaveBeenCalledWith({
-        email: 'apppublishing+superconnectortest@proton.me',
-        password: 'devpassword123'
-      });
-      
-      // Should NOT have called signUp since user exists
-      expect(supabase.auth.signUp).not.toHaveBeenCalled();
-    });
-    
-    it('should create user first when signing in and user does not exist', async () => {
-      // Mock failed sign in, then successful sign up and sign in
-      const mockSignIn = supabase.auth.signInWithPassword as any;
-      mockSignIn
-        .mockResolvedValueOnce({
-          data: null,
-          error: { message: 'Invalid login credentials' }
-        })
-        .mockResolvedValueOnce({
-          data: { user: { id: 'new-user-id' } },
-          error: null
-        });
-      
-      const mockSignUp = supabase.auth.signUp as any;
-      mockSignUp.mockResolvedValue({
-        data: { user: { id: 'new-user-id' } },
-        error: null
-      });
-      
-      const setIsLoading = vi.fn();
-      const onLogin = vi.fn();
-      const onOpenChange = vi.fn();
-      
-      await handleDevLogin(
-        setIsLoading, 
-        'signin',
-        { phone: '1234567890' },
-        onLogin,
-        onOpenChange
-      );
-      
-      // Verify user was created and then signed in
-      expect(mockSignUp).toHaveBeenCalled();
-      expect(mockSignIn).toHaveBeenCalledTimes(2);
-      expect(onLogin).toHaveBeenCalled();
-    });
-    
-    it('should handle "User already registered" error during signup', async () => {
-      // Mock failed sign in, then failed sign up with "User already registered", then successful sign in
-      const mockSignIn = supabase.auth.signInWithPassword as any;
-      mockSignIn
-        .mockResolvedValueOnce({
-          data: null,
-          error: { message: 'Invalid login credentials' }
-        })
-        .mockResolvedValueOnce({
-          data: { user: { id: 'existing-user-id' } },
-          error: null
-        });
-      
-      const mockSignUp = supabase.auth.signUp as any;
-      mockSignUp.mockResolvedValue({
-        data: null,
-        error: { message: 'User already registered' }
-      });
-      
-      const setIsLoading = vi.fn();
-      const onLogin = vi.fn();
-      const onOpenChange = vi.fn();
-      
-      await handleDevLogin(
-        setIsLoading, 
-        'signin',
-        { phone: '1234567890' },
-        onLogin,
-        onOpenChange
-      );
-      
-      // Verify sign in was attempted again after "User already registered" error
-      expect(mockSignUp).toHaveBeenCalled();
-      expect(mockSignIn).toHaveBeenCalledTimes(2);
-      expect(onLogin).toHaveBeenCalled();
       expect(toast).toHaveBeenCalledWith(expect.objectContaining({
         title: "Dev login successful"
       }));
+    });
+    
+    it('should include user metadata from form data', async () => {
+      const setIsLoading = vi.fn();
+      const onLogin = vi.fn();
+      const onOpenChange = vi.fn();
+      const formData = { 
+        name: 'Test User', 
+        phone: '1234567890' 
+      };
+      
+      await handleDevLogin(
+        setIsLoading, 
+        'signup',
+        formData,
+        onLogin,
+        onOpenChange
+      );
+      
+      // Capture the session data that was set in localStorage
+      const sessionArg = (localStorage.setItem as any).mock.calls[0][1];
+      const sessionData = JSON.parse(sessionArg);
+      
+      // Verify user metadata was included
+      expect(sessionData.user.user_metadata.name).toBe('Test User');
+      expect(sessionData.user.user_metadata.phone).toBe('1234567890');
+      expect(sessionData.user.email).toBe('apppublishing+superconnectortest@proton.me');
     });
   });
   

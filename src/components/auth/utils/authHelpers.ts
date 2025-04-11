@@ -1,4 +1,3 @@
-
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -73,125 +72,51 @@ export const handleDevLogin = async (
   setIsLoading(true);
   
   try {
-    console.log("Starting dev login process (bypassing email verification)...");
+    console.log("Starting dev login process (bypassing actual authentication)...");
     
-    // Create a direct session for the user
-    const email = "apppublishing+superconnectortest@proton.me";
-    const devPassword = "devpassword123"; // Consistent password for dev login
+    // In dev mode, instead of trying to authenticate with Supabase,
+    // we'll manually create a session by directly injecting it into
+    // localStorage to simulate being logged in
     
-    // For sign-in flow, just attempt to sign in directly with the dev credentials
-    if (activeTab === "signin") {
-      console.log("Signin flow: Attempting to sign in with dev credentials");
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: devPassword
-      });
-      
-      // If user doesn't exist when signing in, create them first
-      if (error && error.message.includes("Invalid login credentials")) {
-        console.log("User doesn't exist yet, creating account first");
-        
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: email,
-          password: devPassword,
-          options: {
-            data: {
-              name: "Dev User",
-              phone: formData.phone || ""
-            }
-          }
-        });
-        
-        if (signUpError) {
-          // Check if the user already exists error occurs during signup
-          if (signUpError.message.includes("User already registered")) {
-            console.log("User exists but password might be different, attempting recovery");
-            // Try to sign in again with the fixed password anyway
-            const { data: retryData, error: retryError } = await supabase.auth.signInWithPassword({
-              email: email,
-              password: devPassword
-            });
-            
-            if (retryError) throw retryError;
-          } else {
-            throw signUpError;
-          }
-        } else {
-          // Then try signing in again if signup was successful
-          const { error: retryError } = await supabase.auth.signInWithPassword({
-            email: email,
-            password: devPassword
-          });
-          
-          if (retryError) throw retryError;
-        }
-      } else if (error) {
-        throw error;
-      }
-    } 
-    // For signup flow, check if user exists first, then either use existing account or create new one
-    else {
-      console.log("Signup flow: Checking if user exists before creating account");
-      
-      // Check if user exists by attempting to sign in
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: devPassword
-      });
-      
-      // If sign in succeeds, user exists
-      if (!error) {
-        console.log("User already exists, using existing account");
-        // No need to do anything else, sign in was successful
-      }
-      // If login fails, user likely doesn't exist, so create them
-      else {
-        console.log("User doesn't exist, creating new account");
-        
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: email,
-          password: devPassword,
-          options: {
-            data: {
-              name: formData.name || "Dev User",
-              phone: formData.phone || ""
-            }
-          }
-        });
-        
-        // If we get "User already registered" error, try logging in with the password again
-        if (signUpError && signUpError.message.includes("User already registered")) {
-          console.log("User exists but couldn't log in initially, trying again with fixed password");
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: email,
-            password: devPassword
-          });
-          
-          if (signInError) throw signInError;
-        } 
-        else if (signUpError) {
-          throw signUpError;
-        }
-        else {
-          // After creating the user, we need to sign them in
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: email,
-            password: devPassword
-          });
-          
-          if (signInError) throw signInError;
-        }
-      }
-    }
+    // Create a mock user object
+    const mockUser = {
+      id: "dev-user-id-12345",
+      email: "apppublishing+superconnectortest@proton.me",
+      phone: formData.phone || "",
+      user_metadata: {
+        name: formData.name || "Dev User",
+        phone: formData.phone || ""
+      },
+      app_metadata: {
+        provider: "email"
+      },
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
     
-    console.log("Dev login successful");
+    // Create a mock session
+    const mockSession = {
+      access_token: "mock-access-token-for-dev-mode",
+      refresh_token: "mock-refresh-token-for-dev-mode",
+      expires_at: Math.floor(Date.now() / 1000) + 3600, // 1 hour from now
+      user: mockUser
+    };
+    
+    // Store the mock session in localStorage directly
+    // This will trigger the onAuthStateChange listener in the Navbar component
+    localStorage.setItem('sb-session', JSON.stringify(mockSession));
+    
+    // Manually trigger an auth state change to update the UI
+    // This emits an event that the onAuthStateChange listener will pick up
+    window.dispatchEvent(new Event('sb-auth-state-change'));
+    
+    console.log("Dev login successful with mock session");
     onLogin();
     onOpenChange(false);
     
     toast({
       title: "Dev login successful",
-      description: "You're now logged in (magic link bypassed)"
+      description: "You're now logged in (authentication bypassed)"
     });
   } catch (error: any) {
     console.error("Dev login error details:", error);
