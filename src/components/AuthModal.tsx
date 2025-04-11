@@ -16,7 +16,7 @@ interface AuthModalProps {
   onLogin: () => void;
 }
 
-// Define a separate interface for form data to prevent excessive type instantiation
+// Define a simpler interface for form data to prevent excessive type instantiation
 interface FormData {
   phone: string;
   name: string;
