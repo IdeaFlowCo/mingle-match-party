@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Save, User, Twitter, Phone, Pencil } from "lucide-react";
+import { Loader2, Save, Phone, Twitter, Pencil } from "lucide-react";
 
 // Define extended profile data interface with the additional fields
 interface ExtendedProfileData {

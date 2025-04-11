@@ -11,6 +11,7 @@ import ProfilePage from "./pages/ProfilePage";
 import CreateEventPage from "./pages/CreateEventPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import UserProfilePage from "./pages/UserProfilePage";
+import UsersPage from "./pages/UsersPage";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/event" element={<EventPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/user" element={<UserProfilePage />} />
+          <Route path="/users" element={<UsersPage />} />
           <Route path="/create-event" element={<CreateEventPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

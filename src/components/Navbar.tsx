@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
@@ -78,9 +77,14 @@ const Navbar = () => {
 
   return (
     <nav className="w-full py-4 px-6 md:px-12 flex items-center justify-between border-b">
-      <Link to="/" className="text-xl font-semibold">
-        Superconnector
-      </Link>
+      <div className="flex items-center gap-4">
+        <Link to="/" className="text-xl font-semibold">
+          Superconnector
+        </Link>
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/users">Users</Link>
+        </Button>
+      </div>
       <div className="flex items-center gap-4">
         <Button
           variant="outline"
