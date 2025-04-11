@@ -13,14 +13,14 @@ vi.mock('@/components/auth/utils/authHelpers', () => ({
 }));
 
 describe('AuthModal', () => {
+  const defaultProps = {
+    isOpen: true,
+    onOpenChange: vi.fn(),
+    onLogin: vi.fn(),
+  };
+
   it('renders the signup form by default', () => {
-    render(
-      <AuthModal 
-        isOpen={true} 
-        onOpenChange={() => {}} 
-        onLogin={() => {}} 
-      />
-    );
+    render(<AuthModal {...defaultProps} />);
     
     // Check if it renders the signup form first
     expect(screen.getByText('Sign Up')).toBeInTheDocument();
@@ -28,13 +28,7 @@ describe('AuthModal', () => {
   });
   
   it('can switch between signup and signin tabs', () => {
-    render(
-      <AuthModal 
-        isOpen={true} 
-        onOpenChange={() => {}} 
-        onLogin={() => {}} 
-      />
-    );
+    render(<AuthModal {...defaultProps} />);
     
     // Click on the Sign In tab
     fireEvent.click(screen.getByRole('tab', { name: 'Sign In' }));
@@ -45,13 +39,7 @@ describe('AuthModal', () => {
   });
   
   it('triggers test login when test login button is clicked', () => {
-    render(
-      <AuthModal 
-        isOpen={true} 
-        onOpenChange={vi.fn()} 
-        onLogin={vi.fn()} 
-      />
-    );
+    render(<AuthModal {...defaultProps} />);
     
     // Find and click the test login button
     const testLoginButton = screen.getByText('Test Login (Quick Access)');
@@ -61,28 +49,17 @@ describe('AuthModal', () => {
     expect(handleTestLogin).toHaveBeenCalled();
   });
   
-  it('shows magic link when generated', async () => {
-    // Mock the generate magic link function
-    (generateMagicLink as any).mockResolvedValue('http://example.com/magic-link');
+  it('shows different button text based on dev mode', () => {
+    // Dev mode is enabled by default now
+    render(<AuthModal {...defaultProps} />);
     
-    render(
-      <AuthModal 
-        isOpen={true} 
-        onOpenChange={vi.fn()} 
-        onLogin={vi.fn()} 
-      />
-    );
+    // Should show "Sign Up Directly" for the signup tab in dev mode
+    expect(screen.getByText('Sign Up Directly')).toBeInTheDocument();
     
-    // Find and click the "Send magic link" button
-    const sendMagicLinkButton = screen.getByText('Send magic link');
-    fireEvent.click(sendMagicLinkButton);
+    // Switch to signin tab
+    fireEvent.click(screen.getByRole('tab', { name: 'Sign In' }));
     
-    // Wait for the magic link to appear
-    const magicLinkElement = await screen.findByText((content) => 
-      content.includes('magic link')
-    );
-    
-    expect(magicLinkElement).toBeInTheDocument();
-    expect(generateMagicLink).toHaveBeenCalled();
+    // Should show "Sign In Directly" for the signin tab in dev mode
+    expect(screen.getByText('Sign In Directly')).toBeInTheDocument();
   });
 });

@@ -19,16 +19,6 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
   const [magicLink, setMagicLink] = useState("");
   const [devLoginMode, setDevLoginMode] = useState(true); // Default to true for developer convenience
   
-  const handleOnDevLogin = () => {
-    handleDevLogin(
-      setIsLoading, 
-      activeTab, 
-      {}, // No form data needed for dev login
-      onLogin, 
-      onOpenChange
-    );
-  };
-  
   const handleOnTestLogin = () => {
     handleTestLogin(setIsLoading, onLogin, onOpenChange);
   };
@@ -68,10 +58,12 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
               setShowMagicLink={setShowMagicLink}
               onGenerateMagicLink={handleGenerateMagicLink}
               onTestLogin={handleOnTestLogin}
+              onLogin={onLogin}
+              onOpenChange={onOpenChange}
             />
             
             {/* Show Magic Link after request */}
-            {showMagicLink && magicLink && (
+            {showMagicLink && magicLink && !devLoginMode && (
               <div className="mt-4 p-3 border rounded-md bg-muted/50">
                 <p className="text-sm mb-2">Use this magic link to sign in instantly:</p>
                 <a 
@@ -95,10 +87,12 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
               setShowMagicLink={setShowMagicLink}
               onGenerateMagicLink={handleGenerateMagicLink}
               onTestLogin={handleOnTestLogin}
+              onLogin={onLogin}
+              onOpenChange={onOpenChange}
             />
             
             {/* Show Magic Link after request */}
-            {showMagicLink && magicLink && (
+            {showMagicLink && magicLink && !devLoginMode && (
               <div className="mt-4 p-3 border rounded-md bg-muted/50">
                 <p className="text-sm mb-2">Use this magic link to sign in instantly:</p>
                 <a 

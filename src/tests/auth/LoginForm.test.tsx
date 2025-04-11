@@ -5,6 +5,7 @@ import '@testing-library/jest-dom';
 import LoginForm from '@/components/auth/LoginForm';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { handleDevLogin } from '@/components/auth/utils/authHelpers';
 
 // Mock dependencies
 vi.mock('@/hooks/use-toast', () => ({
@@ -19,19 +20,25 @@ vi.mock('@/integrations/supabase/client', () => ({
   }
 }));
 
+vi.mock('@/components/auth/utils/authHelpers', () => ({
+  handleDevLogin: vi.fn()
+}));
+
 describe('LoginForm', () => {
+  const defaultProps = {
+    isLoading: false,
+    setIsLoading: vi.fn(),
+    devLoginMode: false,
+    setDevLoginMode: vi.fn(),
+    setShowMagicLink: vi.fn(),
+    onGenerateMagicLink: vi.fn(),
+    onTestLogin: vi.fn(),
+    onLogin: vi.fn(),
+    onOpenChange: vi.fn()
+  };
+
   it('renders all form elements correctly', () => {
-    render(
-      <LoginForm 
-        isLoading={false}
-        setIsLoading={vi.fn()}
-        devLoginMode={false}
-        setDevLoginMode={vi.fn()}
-        setShowMagicLink={vi.fn()}
-        onGenerateMagicLink={vi.fn()}
-        onTestLogin={vi.fn()}
-      />
-    );
+    render(<LoginForm {...defaultProps} />);
     
     // Check if form elements are present
     expect(screen.getByLabelText('Your Number')).toBeInTheDocument();
@@ -41,17 +48,7 @@ describe('LoginForm', () => {
   });
   
   it('updates phone state when input changes', () => {
-    render(
-      <LoginForm 
-        isLoading={false}
-        setIsLoading={vi.fn()}
-        devLoginMode={false}
-        setDevLoginMode={vi.fn()}
-        setShowMagicLink={vi.fn()}
-        onGenerateMagicLink={vi.fn()}
-        onTestLogin={vi.fn()}
-      />
-    );
+    render(<LoginForm {...defaultProps} />);
     
     // Find phone input and change it
     const phoneInput = screen.getByLabelText('Your Number');
@@ -61,29 +58,15 @@ describe('LoginForm', () => {
     expect(phoneInput).toHaveValue('1234567890');
   });
   
-  it('calls onGenerateMagicLink when in dev login mode', async () => {
-    const mockGenerateMagicLink = vi.fn();
-    const mockSetIsLoading = vi.fn();
-    
-    render(
-      <LoginForm 
-        isLoading={false}
-        setIsLoading={mockSetIsLoading}
-        devLoginMode={true}
-        setDevLoginMode={vi.fn()}
-        setShowMagicLink={vi.fn()}
-        onGenerateMagicLink={mockGenerateMagicLink}
-        onTestLogin={vi.fn()}
-      />
-    );
+  it('calls handleDevLogin when in dev login mode', async () => {
+    render(<LoginForm {...defaultProps} devLoginMode={true} />);
     
     // Submit the form
-    const submitButton = screen.getByText('Send magic link');
+    const submitButton = screen.getByText('Sign In Directly');
     fireEvent.click(submitButton);
     
-    // Should call onGenerateMagicLink
-    expect(mockSetIsLoading).toHaveBeenCalledWith(true);
-    expect(mockGenerateMagicLink).toHaveBeenCalled();
+    // Should call handleDevLogin
+    expect(handleDevLogin).toHaveBeenCalled();
   });
   
   it('calls supabase.auth.signInWithOtp when not in dev mode', async () => {
@@ -93,17 +76,7 @@ describe('LoginForm', () => {
       error: null
     });
     
-    render(
-      <LoginForm 
-        isLoading={false}
-        setIsLoading={vi.fn()}
-        devLoginMode={false}
-        setDevLoginMode={vi.fn()}
-        setShowMagicLink={vi.fn()}
-        onGenerateMagicLink={vi.fn()}
-        onTestLogin={vi.fn()}
-      />
-    );
+    render(<LoginForm {...defaultProps} />);
     
     // Submit the form
     const submitButton = screen.getByText('Send magic link');

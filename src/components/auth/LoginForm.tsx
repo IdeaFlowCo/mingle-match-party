@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { handleDevLogin } from "./utils/authHelpers"; 
 
 interface LoginFormProps {
   isLoading: boolean;
@@ -15,6 +16,8 @@ interface LoginFormProps {
   setShowMagicLink: (show: boolean) => void;
   onGenerateMagicLink: () => void;
   onTestLogin: () => void;
+  onLogin: () => void;
+  onOpenChange: (open: boolean) => void;
 }
 
 const LoginForm = ({
@@ -24,7 +27,9 @@ const LoginForm = ({
   setDevLoginMode,
   setShowMagicLink,
   onGenerateMagicLink,
-  onTestLogin
+  onTestLogin,
+  onLogin,
+  onOpenChange
 }: LoginFormProps) => {
   const [phone, setPhone] = useState("");
   const [lastRequestTime, setLastRequestTime] = useState(0);
@@ -40,14 +45,17 @@ const LoginForm = ({
       const email = "apppublishing+superconnectortest@proton.me";
       console.log(`Using email address: ${email}`);
       
-      // If dev login mode is enabled, skip sending the email and show the direct magic link
+      // If dev login mode is enabled, use direct authentication instead of magic link
       if (devLoginMode) {
-        console.log("Dev login mode enabled, generating direct magic link");
-        onGenerateMagicLink();
-        toast({
-          title: "Dev login mode enabled",
-          description: "Direct magic link generated. Click it to sign in."
-        });
+        console.log("Dev login mode enabled, logging in directly");
+        await handleDevLogin(
+          setIsLoading,
+          "signin",
+          { phone },
+          onLogin,
+          onOpenChange
+        );
+        return; // Exit early as handleDevLogin will handle the rest
       } else {
         // Check if we need to enforce timeout (only for non-dev mode)
         const currentTime = Date.now();
@@ -83,7 +91,11 @@ const LoginForm = ({
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
+      // setIsLoading is handled by handleDevLogin in dev mode, 
+      // so only set it to false here in the normal flow
+      if (!devLoginMode) {
+        setIsLoading(false);
+      }
       console.log("Authentication process completed");
     }
   };
@@ -101,7 +113,9 @@ const LoginForm = ({
             placeholder="Enter your phone number" 
           />
           <p className="text-xs text-gray-500 mt-1">
-            Magic link will be sent to: apppublishing+superconnectortest@proton.me
+            {devLoginMode 
+              ? "Dev Mode: You'll be signed in directly" 
+              : "Magic link will be sent to: apppublishing+superconnectortest@proton.me"}
           </p>
         </div>
         
@@ -115,12 +129,12 @@ const LoginForm = ({
             htmlFor="devModeSignIn"
             className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
           >
-            Dev Login Mode (Generate direct magic link)
+            Dev Login Mode (Skip magic link)
           </label>
         </div>
         
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Processing..." : "Send magic link"}
+          {isLoading ? "Processing..." : devLoginMode ? "Sign In Directly" : "Send magic link"}
         </Button>
         
         <div className="text-center mt-4">
