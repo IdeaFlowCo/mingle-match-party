@@ -31,7 +31,6 @@ interface ExistingProfileResult {
 const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   
@@ -48,16 +47,18 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
         .maybeSingle<ExistingProfileResult>();
       
       if (existingProfile) {
-        // User exists, log them in
-        await supabase.auth.signInWithPassword({
+        // User exists, log them in with magic link
+        await supabase.auth.signInWithOtp({
           email: `${phone}@superconnector.app`,
-          password,
+        });
+        toast({
+          title: "Check your email",
+          description: "We've sent you a magic link to log in."
         });
       } else {
-        // Create new user
-        const { data: authData, error: authError } = await supabase.auth.signUp({
+        // Create new user with magic link
+        const { error: authError } = await supabase.auth.signUp({
           email: `${phone}@superconnector.app`,
-          password,
           options: {
             data: {
               phone,
@@ -70,7 +71,7 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
         
         toast({
           title: "Account created",
-          description: "Welcome to Superconnector!"
+          description: "Check your email for a login link."
         });
       }
       
@@ -93,8 +94,8 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
         <AlertDialogHeader>
           <AlertDialogTitle>Authentication</AlertDialogTitle>
           <AlertDialogDescription>
-            Enter your name, phone number, and password to sign up or sign in.
-            We'll send you a verification code to your phone number.
+            Enter your name and phone number to sign up or sign in.
+            We'll automatically create an account if you don't have one.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <form onSubmit={handleLogin} className="grid gap-4 py-4">
@@ -114,15 +115,6 @@ const AuthModal = ({ isOpen, onOpenChange, onLogin }: AuthModalProps) => {
               id="phone"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
             />
           </div>
           <AlertDialogFooter>
